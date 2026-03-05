@@ -18,11 +18,14 @@ const notificationController = require('./controllers/notification.controller');
 const configurationController = require('./controllers/configuration.controller');
 const { authenticate, isAdmin } = require('./middlewares/auth.middleware');
 const validate = require('./middlewares/validate.middleware');
+const { upload, uploadErrorHandler } = require('./middlewares/upload.middleware');
 const { bootstrapDefaultAdmin, bootstrapDefaultConfiguration } = require('./bootstrap');
 const ApiResponse = require('./utils/apiResponse');
 const {
   createUserSchema,
+  adminCreateUserSchema,
   updateUserSchema,
+  changePasswordSchema,
   loginSchema,
   createCategorieSchema,
   updateCategorieSchema,
@@ -96,12 +99,19 @@ app.get('/', (req, res) => {
 const router = express.Router();
 
 // Routes publiques
-router.post('/auth/register', validate(createUserSchema), authController.register.bind(authController));
 router.post('/auth/login', validate(loginSchema), authController.login.bind(authController));
 
 // Routes protégées - Authentification
 router.get('/auth/me', authenticate, authController.getProfile.bind(authController));
 router.put('/auth/:id', authenticate, validate(updateUserSchema), authController.updateUser.bind(authController));
+
+// Routes protégées - Administration (Admin seulement)
+router.post('/auth/admin/create-user', authenticate, isAdmin, validate(adminCreateUserSchema), authController.createUserByAdmin.bind(authController));
+router.get('/auth/admin/users', authenticate, isAdmin, authController.getAllUsers.bind(authController));
+router.delete('/auth/admin/users/:id', authenticate, isAdmin, authController.softDeleteUser.bind(authController));
+
+// Routes protégées - Changement de mot de passe
+router.put('/auth/change-password', authenticate, validate(changePasswordSchema), authController.changePassword.bind(authController));
 
 // Routes protégées - Catégories
 router.get('/categories', authenticate, categorieController.getAll.bind(categorieController));
@@ -113,10 +123,13 @@ router.delete('/categories/:id', authenticate, categorieController.delete.bind(c
 // Routes protégées - Produits
 router.get('/produits', authenticate, produitController.getAll.bind(produitController));
 router.get('/produits/:id', authenticate, produitController.getById.bind(produitController));
-router.post('/produits', authenticate, validate(createProduitSchema), produitController.create.bind(produitController));
+router.post('/produits', authenticate, upload.single('image'), validate(createProduitSchema), uploadErrorHandler, produitController.create.bind(produitController));
 router.put('/produits/:id', authenticate, validate(updateProduitSchema), produitController.update.bind(produitController));
 router.delete('/produits/:id', authenticate, produitController.delete.bind(produitController));
 router.get('/produits/stock/alertes', authenticate, produitController.getLowStock.bind(produitController));
+
+// Servir les fichiers statiques (uploads)
+router.use('/uploads', express.static('uploads'));
 
 // Routes protégées - Clients
 router.get('/clients', authenticate, clientController.getAll.bind(clientController));

@@ -2,6 +2,7 @@ const prisma = require('../config/database');
 const { createProduitSchema, updateProduitSchema } = require('../validators/schemas');
 const ApiResponse = require('../utils/apiResponse');
 const z = require('zod');
+const path = require('path');
 
 class ProduitController {
   /**
@@ -167,7 +168,22 @@ class ProduitController {
    */
   async create(req, res) {
     try {
-      const validatedData = createProduitSchema.parse(req.body);
+      // Gérer l'upload d'image si présente
+      let imageUrl = null;
+      
+      if (req.file) {
+        // Construire l'URL de l'image
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        imageUrl = `${baseUrl}/uploads/products/${path.basename(req.file.path)}`;
+      }
+
+      // Parser les données du body (sans imageUrl car géré séparément)
+      const productData = { ...req.body };
+      if (imageUrl) {
+        productData.imageUrl = imageUrl;
+      }
+
+      const validatedData = createProduitSchema.parse(productData);
 
       // Vérifier si la référence existe déjà
       const existingProduit = await prisma.produit.findUnique({

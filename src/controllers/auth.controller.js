@@ -1,18 +1,20 @@
 const prisma = require('../config/database');
 const PasswordUtils = require('../utils/password');
 const JwtUtils = require('../utils/jwt');
-const { createUserSchema, loginSchema, updateUserSchema } = require('../validators/schemas');
+const { createUserSchema, adminCreateUserSchema, updateUserSchema, changePasswordSchema, loginSchema } = require('../validators/schemas');
 const {z} = require('zod');
 const ApiResponse = require('../utils/apiResponse');
 
 class AuthController {
   /**
    * @swagger
-   * /auth/register:
+   * /auth/admin/create-user:
    *   post:
-   *     summary: Inscription d'un nouvel utilisateur
-   *     description: Crée un nouveau compte utilisateur avec les informations fournies. Le rôle par défaut est 'vendeur'.
-   *     tags: [Authentification]
+   *     summary: Créer un utilisateur (Admin seulement)
+   *     description: Crée un nouveau compte utilisateur. Le mot de passe est automatiquement défini à "123456". Réservé aux administrateurs.
+   *     tags: [Utilisateurs]
+   *     security:
+   *       - bearerAuth: []
    *     requestBody:
    *       required: true
    *       content:
@@ -24,7 +26,6 @@ class AuthController {
    *               - prenom
    *               - email
    *               - telephone
-   *               - motDePasse
    *             properties:
    *               nom:
    *                 type: string
@@ -41,11 +42,7 @@ class AuthController {
    *               telephone:
    *                 type: string
    *                 minLength: 8
-   *                 example: 0612345678
-   *               motDePasse:
-   *                 type: string
-   *                 minLength: 6
-   *                 example: MonMot2Passe
+   *                 example: +22877123456
    *               role:
    *                 type: string
    *                 enum: [admin, vendeur]
@@ -67,7 +64,7 @@ class AuthController {
    *                   example: true
    *                 message:
    *                   type: string
-   *                   example: Utilisateur créé avec succès
+   *                   example: Utilisateur créé avec succès. Mot de passe temporaire: 123456
    *                 data:
    *                   type: object
    *                   properties:
@@ -87,38 +84,21 @@ class AuthController {
    *                   format: date-time
    *       400:
    *         description: Données invalides ou email déjà utilisé
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                   example: false
-   *                 message:
-   *                   type: string
-   *                   example: Validation échouée
-   *                 error:
-   *                   type: string
-   *                   example: Données invalides
-   *                 details:
-   *                   type: array
-   *                   items:
-   *                     type: object
-   *                     properties:
-   *                       field:
-   *                         type: string
-   *                       message:
-   *                         type: string
-   *                 timestamp:
-   *                   type: string
-   *                   format: date-time
+   *       401:
+   *         description: Non authentifié
+   *       403:
+   *         description: Accès refusé (admin seulement)
    *       500:
    *         description: Erreur serveur interne
    */
-  async register(req, res) {
+  async createUserByAdmin(req, res) {
     try {
-      const validatedData = createUserSchema.parse(req.body);
+      // Vérifier que l'utilisateur qui crée est un admin
+      if (req.user.role !== 'admin') {
+        return ApiResponse.error(res, 'Accès refusé. Seul un administrateur peut créer des utilisateurs', 403);
+      }
+
+      const validatedData = adminCreateUserSchema.parse(req.body);
 
       // Vérifier si l'email existe déjà
       const existingUser = await prisma.utilisateur.findUnique({
@@ -129,8 +109,11 @@ class AuthController {
         return ApiResponse.error(res, 'Cet email est déjà utilisé', 400);
       }
 
-      // Hacher le mot de passe
-      const motDePasseHash = await PasswordUtils.hash(validatedData.motDePasse);
+      // Mot de passe par défaut
+      const DEFAULT_PASSWORD = '123456';
+      
+      // Hacher le mot de passe par défaut
+      const motDePasseHash = await PasswordUtils.hash(DEFAULT_PASSWORD);
 
       // Créer l'utilisateur
       const utilisateur = await prisma.utilisateur.create({
@@ -151,7 +134,11 @@ class AuthController {
         }
       });
 
-      return ApiResponse.created(res, utilisateur, 'Utilisateur créé avec succès');
+      return ApiResponse.created(
+        res, 
+        utilisateur, 
+        `Utilisateur créé avec succès. Mot de passe temporaire: ${DEFAULT_PASSWORD}`
+      );
     } catch (error) {
       if (error instanceof z.ZodError) {
         const errors = error.errors.map(err => ({
@@ -161,8 +148,275 @@ class AuthController {
         }));
         return ApiResponse.error(res, 'Validation échouée', 400, errors);
       }
-      console.error('Erreur register:', error);
-      return ApiResponse.error(res, 'Erreur serveur lors de l\'inscription', 500);
+      console.error('Erreur createUserByAdmin:', error);
+      return ApiResponse.error(res, 'Erreur serveur lors de la création', 500);
+    }
+  }
+
+  /**
+   * @swagger
+   * /auth/admin/users:
+   *   get:
+   *     summary: Lister tous les utilisateurs (Admin seulement)
+   *     description: Retourne la liste de tous les utilisateurs. Réservé aux administrateurs.
+   *     tags: [Utilisateurs]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Liste des utilisateurs
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 message:
+   *                   type: string
+   *                   example: Utilisateurs récupérés avec succès
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       id:
+   *                         type: string
+   *                         format: uuid
+   *                       nom:
+   *                         type: string
+   *                       prenom:
+   *                         type: string
+   *                       email:
+   *                         type: string
+   *                       role:
+   *                         type: string
+   *                       actif:
+   *                         type: boolean
+   *                 timestamp:
+   *                   type: string
+   *                   format: date-time
+   *       401:
+   *         description: Non authentifié
+   *       403:
+   *         description: Accès refusé (admin seulement)
+   */
+  async getAllUsers(req, res) {
+    try {
+      // Vérifier que l'utilisateur qui consulte est un admin
+      if (req.user.role !== 'admin') {
+        return ApiResponse.error(res, 'Accès refusé. Seul un administrateur peut consulter la liste des utilisateurs', 403);
+      }
+
+      const utilisateurs = await prisma.utilisateur.findMany({
+        select: {
+          id: true,
+          nom: true,
+          prenom: true,
+          email: true,
+          telephone: true,
+          role: true,
+          actif: true,
+          creeLe: true,
+          derniereConnexion: true
+        },
+        orderBy: {
+          creeLe: 'desc'
+        }
+      });
+
+      return ApiResponse.success(res, utilisateurs, 'Utilisateurs récupérés avec succès');
+    } catch (error) {
+      console.error('Erreur getAllUsers:', error);
+      return ApiResponse.error(res, 'Erreur serveur', 500);
+    }
+  }
+
+  /**
+   * @swagger
+   * /auth/admin/users/{id}:
+   *   delete:
+   *     summary: Supprimer un utilisateur (Soft Delete - Admin seulement)
+   *     description: Désactive un utilisateur (soft delete). Réservé aux administrateurs.
+   *     tags: [Utilisateurs]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: ID de l'utilisateur à supprimer
+   *     responses:
+   *       200:
+   *         description: Utilisateur désactivé avec succès
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 message:
+   *                   type: string
+   *                   example: Utilisateur désactivé avec succès
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                       format: uuid
+   *                     nom:
+   *                       type: string
+   *                     prenom:
+   *                       type: string
+   *                     email:
+   *                       type: string
+   *                     actif:
+   *                       type: boolean
+   *                       example: false
+   *                 timestamp:
+   *                   type: string
+   *                   format: date-time
+   *       401:
+   *         description: Non authentifié
+   *       403:
+   *         description: Accès refusé (admin seulement)
+   *       404:
+   *         description: Utilisateur non trouvé
+   */
+  async softDeleteUser(req, res) {
+    try {
+      // Vérifier que l'utilisateur qui supprime est un admin
+      if (req.user.role !== 'admin') {
+        return ApiResponse.error(res, 'Accès refusé. Seul un administrateur peut supprimer des utilisateurs', 403);
+      }
+
+      const { id } = req.params;
+
+      // Soft delete : mettre actif à false au lieu de supprimer
+      const utilisateur = await prisma.utilisateur.update({
+        where: { id },
+        data: { actif: false },
+        select: {
+          id: true,
+          nom: true,
+          prenom: true,
+          email: true,
+          role: true,
+          actif: true
+        }
+      });
+
+      return ApiResponse.success(res, utilisateur, 'Utilisateur désactivé avec succès');
+    } catch (error) {
+      if (error.code === 'P2025') {
+        return ApiResponse.error(res, 'Utilisateur non trouvé', 404);
+      }
+      console.error('Erreur softDeleteUser:', error);
+      return ApiResponse.error(res, 'Erreur serveur', 500);
+    }
+  }
+
+  /**
+   * @swagger
+   * /auth/change-password:
+   *   put:
+   *     summary: Changer son propre mot de passe
+   *     description: Permet à un utilisateur authentifié de changer son mot de passe en fournissant l'ancien et le nouveau.
+   *     tags: [Authentification]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - oldPassword
+   *               - newPassword
+   *             properties:
+   *               oldPassword:
+   *                 type: string
+   *                 example: 123456
+   *               newPassword:
+   *                 type: string
+   *                 minLength: 6
+   *                 example: NouveauMot2Passe
+   *     responses:
+   *       200:
+   *         description: Mot de passe changé avec succès
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 message:
+   *                   type: string
+   *                   example: Mot de passe changé avec succès
+   *                 timestamp:
+   *                   type: string
+   *                   format: date-time
+   *       400:
+   *         description: Ancien mot de passe incorrect ou nouveau mot de passe invalide
+   *       401:
+   *         description: Non authentifié
+   *       500:
+   *         description: Erreur serveur interne
+   */
+  async changePassword(req, res) {
+    try {
+      const validatedData = changePasswordSchema.parse(req.body);
+      const userId = req.user.userId;
+
+      // Récupérer l'utilisateur
+      const utilisateur = await prisma.utilisateur.findUnique({
+        where: { id: userId }
+      });
+
+      if (!utilisateur) {
+        return ApiResponse.error(res, 'Utilisateur non trouvé', 404);
+      }
+
+      // Vérifier l'ancien mot de passe
+      const oldPasswordValid = await PasswordUtils.compare(
+        validatedData.oldPassword,
+        utilisateur.motDePasse
+      );
+
+      if (!oldPasswordValid) {
+        return ApiResponse.error(res, 'Ancien mot de passe incorrect', 400);
+      }
+
+      // Hacher le nouveau mot de passe
+      const newPasswordHash = await PasswordUtils.hash(validatedData.newPassword);
+
+      // Mettre à jour le mot de passe
+      await prisma.utilisateur.update({
+        where: { id: userId },
+        data: { motDePasse: newPasswordHash }
+      });
+
+      return ApiResponse.success(res, null, 'Mot de passe changé avec succès');
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors = error.errors.map(err => ({
+          field: err.path.join('.'),
+          message: err.message,
+          code: err.code
+        }));
+        return ApiResponse.error(res, 'Validation échouée', 400, errors);
+      }
+      console.error('Erreur changePassword:', error);
+      return ApiResponse.error(res, 'Erreur serveur', 500);
     }
   }
 

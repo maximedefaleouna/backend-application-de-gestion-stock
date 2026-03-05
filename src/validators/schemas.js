@@ -1,15 +1,24 @@
 
 const z = require('zod');
 
-// Schéma pour l'inscription/utilisateur
+// Schéma pour créer un utilisateur (par admin seulement - sans mot de passe)
 const createUserSchema = z.object({
   nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   prenom: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
   email: z.string().email('Email invalide'),
   telephone: z.string().min(8, 'Numéro de téléphone invalide'),
-  motDePasse: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
   role: z.enum(['admin', 'vendeur']).optional(),
   actif: z.boolean().optional()
+});
+
+// Schéma pour la création par admin avec mot de passe automatique
+const adminCreateUserSchema = z.object({
+  nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  prenom: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
+  email: z.string().email('Email invalide'),
+  telephone: z.string().min(8, 'Numéro de téléphone invalide'),
+  role: z.enum(['admin', 'vendeur']).default('vendeur'),
+  actif: z.boolean().default(true)
 });
 
 const updateUserSchema = z.object({
@@ -17,9 +26,14 @@ const updateUserSchema = z.object({
   prenom: z.string().min(2).optional(),
   email: z.string().email().optional(),
   telephone: z.string().min(8).optional(),
-  motDePasse: z.string().min(6).optional(),
   role: z.enum(['admin', 'vendeur']).optional(),
   actif: z.boolean().optional()
+});
+
+// Schéma pour changer son propre mot de passe
+const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, 'L\'ancien mot de passe est requis'),
+  newPassword: z.string().min(6, 'Le nouveau mot de passe doit contenir au moins 6 caractères')
 });
 
 // Schéma pour le login
@@ -145,7 +159,9 @@ const createConfigurationSchema = z.object({
 
 module.exports = {
   createUserSchema,
+  adminCreateUserSchema,
   updateUserSchema,
+  changePasswordSchema,
   loginSchema,
   createCategorieSchema,
   updateCategorieSchema,
