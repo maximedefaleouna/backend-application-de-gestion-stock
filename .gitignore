@@ -1,3 +1,9 @@
 node_modules
-# Keep environment variables out of version control
+dist
 .env
+.env.local
+*.log
+.DS_Store
+coverage
+.vscode
+.idea
