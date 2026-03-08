@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { createVenteSchema, updateVenteSchema } = require('../validators/schemas');
+const z = require('zod');
 
 class VenteController {
   /**

@@ -1,15 +1,16 @@
-const prisma = require('../config/database');
+﻿const prisma = require('../config/database');
 const { createProduitSchema, updateProduitSchema } = require('../validators/schemas');
 const ApiResponse = require('../utils/apiResponse');
 const z = require('zod');
 const path = require('path');
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 class ProduitController {
   /**
    * @swagger
    * /produits:
    *   get:
-   *     summary: Récupérer tous les produits
+   *     summary: RÃ©cupÃ©rer tous les produits
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -62,7 +63,7 @@ class ProduitController {
         orderBy: { createdAt: 'desc' }
       });
 
-      return ApiResponse.success(res, produits, 'Produits récupérés avec succès');
+      return ApiResponse.success(res, produits, 'Produits rÃ©cupÃ©rÃ©s avec succÃ¨s');
     } catch (error) {
       console.error('Erreur getAll produits:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -73,7 +74,7 @@ class ProduitController {
    * @swagger
    * /produits/{id}:
    *   get:
-   *     summary: Récupérer un produit par ID
+   *     summary: RÃ©cupÃ©rer un produit par ID
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -85,9 +86,9 @@ class ProduitController {
    *           type: string
    *     responses:
    *       200:
-   *         description: Produit trouvé
+   *         description: Produit trouvÃ©
    *       404:
-   *         description: Produit non trouvé
+   *         description: Produit non trouvÃ©
    */
   async getById(req, res) {
     try {
@@ -115,10 +116,10 @@ class ProduitController {
       });
 
       if (!produit) {
-        return ApiResponse.error(res, 'Produit non trouvé', 404);
+        return ApiResponse.error(res, 'Produit non trouvÃ©', 404);
       }
 
-      return ApiResponse.success(res, produit, 'Produit récupéré avec succès');
+      return ApiResponse.success(res, produit, 'Produit rÃ©cupÃ©rÃ© avec succÃ¨s');
     } catch (error) {
       console.error('Erreur getById produit:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -129,7 +130,7 @@ class ProduitController {
    * @swagger
    * /produits:
    *   post:
-   *     summary: Créer un nouveau produit
+   *     summary: CrÃ©er un nouveau produit
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -162,55 +163,96 @@ class ProduitController {
    *                 type: boolean
    *     responses:
    *       201:
-   *         description: Produit créé
+   *         description: Produit crÃ©Ã©
    *       400:
-   *         description: Données invalides
+   *         description: DonnÃ©es invalides
    */
   async create(req, res) {
     try {
-      // Gérer l'upload d'image si présente
+      // GÃ©rer l'upload d'image si prÃ©sente
       let imageUrl = null;
       
       if (req.file) {
         // Construire l'URL de l'image
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        imageUrl = `${baseUrl}/uploads/products/${path.basename(req.file.path)}`;
+        imageUrl = `/uploads/products/${path.basename(req.file.path)}`;
       }
 
-      // Parser les données du body (sans imageUrl car géré séparément)
+      // Parser les donnÃ©es du body (sans imageUrl car gÃ©rÃ© sÃ©parÃ©ment)
       const productData = { ...req.body };
+      
+      // Si une image a Ã©tÃ© uploadÃ©e, on l'ajoute
       if (imageUrl) {
         productData.imageUrl = imageUrl;
       }
 
-      const validatedData = createProduitSchema.parse(productData);
+      // Convertir les types si nÃ©cessaire (les FormData envoient des strings)
+      if (productData.sellPrice) productData.sellPrice = Number(productData.sellPrice);
+      if (productData.buyPrice) productData.buyPrice = Number(productData.buyPrice);
+      if (productData.stock !== undefined) productData.stock = Number(productData.stock);
+      if (productData.minStock !== undefined) productData.minStock = Number(productData.minStock);
+      if (productData.available !== undefined) productData.available = productData.available === 'true';
+      if (typeof productData.compatibleVehicles === 'string') {
+        try {
+          productData.compatibleVehicles = JSON.parse(productData.compatibleVehicles);
+        } catch {
+          productData.compatibleVehicles = [];
+        }
+      }
 
-      // Vérifier si la référence existe déjà
+      const validatedData = createProduitSchema.parse(productData);
+      let categorieId = validatedData.category;
+
+      // Accepter soit un ID UUID, soit un nom de catÃ©gorie cÃ´tÃ© frontend
+      if (!UUID_REGEX.test(categorieId)) {
+        const categorie = await prisma.categorie.findFirst({
+          where: { nom: categorieId },
+          select: { id: true }
+        });
+
+        if (!categorie) {
+          return ApiResponse.error(res, 'CatÃ©gorie invalide ou inexistante', 400);
+        }
+        categorieId = categorie.id;
+      }
+
+      // VÃ©rifier si la rÃ©fÃ©rence existe dÃ©jÃ 
       const existingProduit = await prisma.produit.findUnique({
         where: { reference: validatedData.reference }
       });
 
       if (existingProduit) {
-        return ApiResponse.error(res, 'Cette référence existe déjà', 400);
+        return ApiResponse.error(res, 'Cette rÃ©fÃ©rence existe dÃ©jÃ ', 400);
       }
 
       const produit = await prisma.produit.create({
-        data: validatedData,
+        data: {
+          nom: validatedData.name,
+          reference: validatedData.reference,
+          description: validatedData.description,
+          categorieId,
+          marque: validatedData.brand,
+          prixVente: validatedData.sellPrice,
+          stock: validatedData.stock,
+          stockMin: validatedData.minStock,
+          imageUrl: validatedData.imageUrl || null,
+          disponible: validatedData.available
+        },
         include: { categorie: true }
       });
 
-      return ApiResponse.created(res, produit, 'Produit créé avec succès');
+      return ApiResponse.created(res, produit, 'Produit crÃ©Ã© avec succÃ¨s');
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errors = error.errors.map(err => ({
+        const issues = error.issues || error.errors || [];
+        const errors = issues.map(err => ({
           field: err.path.join('.'),
           message: err.message,
           code: err.code
         }));
-        return ApiResponse.error(res, 'Validation échouée', 400, errors);
+        return ApiResponse.error(res, 'Validation Ã©chouÃ©e', 400, errors);
       }
       if (error.code === 'P2002') {
-        return ApiResponse.error(res, 'Référence déjà utilisée', 400);
+        return ApiResponse.error(res, 'RÃ©fÃ©rence dÃ©jÃ  utilisÃ©e', 400);
       }
       console.error('Erreur create produit:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -221,7 +263,7 @@ class ProduitController {
    * @swagger
    * /produits/{id}:
    *   put:
-   *     summary: Mettre à jour un produit
+   *     summary: Mettre Ã  jour un produit
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -239,33 +281,61 @@ class ProduitController {
    *             type: object
    *     responses:
    *       200:
-   *         description: Produit mis à jour
+   *         description: Produit mis Ã  jour
    *       404:
-   *         description: Produit non trouvé
+   *         description: Produit non trouvÃ©
    */
   async update(req, res) {
     try {
       const { id } = req.params;
       const validatedData = updateProduitSchema.parse(req.body);
+      const dataToUpdate = {};
+
+      if (validatedData.name !== undefined) dataToUpdate.nom = validatedData.name;
+      if (validatedData.reference !== undefined) dataToUpdate.reference = validatedData.reference;
+      if (validatedData.description !== undefined) dataToUpdate.description = validatedData.description;
+      if (validatedData.brand !== undefined) dataToUpdate.marque = validatedData.brand;
+      if (validatedData.sellPrice !== undefined) dataToUpdate.prixVente = validatedData.sellPrice;
+      if (validatedData.stock !== undefined) dataToUpdate.stock = validatedData.stock;
+      if (validatedData.minStock !== undefined) dataToUpdate.stockMin = validatedData.minStock;
+      if (validatedData.imageUrl !== undefined) dataToUpdate.imageUrl = validatedData.imageUrl || null;
+      if (validatedData.available !== undefined) dataToUpdate.disponible = validatedData.available;
+
+      if (validatedData.category !== undefined) {
+        let categorieId = validatedData.category;
+        if (!UUID_REGEX.test(categorieId)) {
+          const categorie = await prisma.categorie.findFirst({
+            where: { nom: categorieId },
+            select: { id: true }
+          });
+
+          if (!categorie) {
+            return ApiResponse.error(res, 'CatÃ©gorie invalide ou inexistante', 400);
+          }
+          categorieId = categorie.id;
+        }
+        dataToUpdate.categorieId = categorieId;
+      }
 
       const produit = await prisma.produit.update({
         where: { id },
-        data: validatedData,
+        data: dataToUpdate,
         include: { categorie: true }
       });
 
-      return ApiResponse.success(res, produit, 'Produit mis à jour avec succès');
+      return ApiResponse.success(res, produit, 'Produit mis Ã  jour avec succÃ¨s');
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errors = error.errors.map(err => ({
+        const issues = error.issues || error.errors || [];
+        const errors = issues.map(err => ({
           field: err.path.join('.'),
           message: err.message,
           code: err.code
         }));
-        return ApiResponse.error(res, 'Validation échouée', 400, errors);
+        return ApiResponse.error(res, 'Validation Ã©chouÃ©e', 400, errors);
       }
       if (error.code === 'P2025') {
-        return ApiResponse.error(res, 'Produit non trouvé', 404);
+        return ApiResponse.error(res, 'Produit non trouvÃ©', 404);
       }
       console.error('Erreur update produit:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -288,9 +358,9 @@ class ProduitController {
    *           type: string
    *     responses:
    *       200:
-   *         description: Produit supprimé
+   *         description: Produit supprimÃ©
    *       404:
-   *         description: Produit non trouvé
+   *         description: Produit non trouvÃ©
    */
   async delete(req, res) {
     try {
@@ -300,10 +370,10 @@ class ProduitController {
         where: { id }
       });
 
-      return ApiResponse.success(res, null, 'Produit supprimé avec succès');
+      return ApiResponse.success(res, null, 'Produit supprimÃ© avec succÃ¨s');
     } catch (error) {
       if (error.code === 'P2025') {
-        return ApiResponse.error(res, 'Produit non trouvé', 404);
+        return ApiResponse.error(res, 'Produit non trouvÃ©', 404);
       }
       console.error('Erreur delete produit:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -314,7 +384,7 @@ class ProduitController {
    * @swagger
    * /produits/stock/alertes:
    *   get:
-   *     summary: Récupérer les produits avec stock faible
+   *     summary: RÃ©cupÃ©rer les produits avec stock faible
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -335,7 +405,7 @@ class ProduitController {
         }
       });
 
-      return ApiResponse.success(res, produits, 'Produits avec stock faible récupérés avec succès');
+      return ApiResponse.success(res, produits, 'Produits avec stock faible rÃ©cupÃ©rÃ©s avec succÃ¨s');
     } catch (error) {
       console.error('Erreur getLowStock produits:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -344,3 +414,4 @@ class ProduitController {
 }
 
 module.exports = new ProduitController();
+

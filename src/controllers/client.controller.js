@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { createClientSchema, updateClientSchema } = require('../validators/schemas');
+const z = require('zod');
 
 class ClientController {
   /**

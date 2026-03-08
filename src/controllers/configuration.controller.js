@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { createConfigurationSchema } = require('../validators/schemas');
+const z = require('zod');
 
 class ConfigurationController {
   /**

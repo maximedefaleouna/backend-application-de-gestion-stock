@@ -130,7 +130,7 @@ class AuthController {
           telephone: true,
           role: true,
           actif: true,
-          creeLe: true
+          createdAt: true
         }
       });
 
@@ -218,11 +218,11 @@ class AuthController {
           telephone: true,
           role: true,
           actif: true,
-          creeLe: true,
+          createdAt: true,
           derniereConnexion: true
         },
         orderBy: {
-          creeLe: 'desc'
+          createdAt: 'desc'
         }
       });
 

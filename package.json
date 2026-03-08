@@ -7,9 +7,14 @@
     "dev": "nodemon src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:seed": "node prisma/seed.js"
   },
-  "keywords": ["stock", "vente", "gestion"],
+  "keywords": [
+    "stock",
+    "vente",
+    "gestion"
+  ],
   "author": "",
   "license": "ISC",
   "description": "Backend API pour la gestion de stock et ventes",
@@ -20,12 +25,13 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "prisma": "^6.6.0",
-    "nodemon": "^3.0.0"
+    "nodemon": "^3.0.0",
+    "prisma": "^6.6.0"
   }
 }

@@ -1,4 +1,5 @@
-const express = require('express');
+﻿const express = require('express');
+const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 const cors = require('cors');
@@ -84,6 +85,9 @@ const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const uploadsPath = path.join(__dirname, '..', 'uploads');
+app.use('/uploads', express.static(uploadsPath));
+app.use('/api/v1/uploads', express.static(uploadsPath));
 
 // Documentation Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
@@ -101,26 +105,26 @@ const router = express.Router();
 // Routes publiques
 router.post('/auth/login', validate(loginSchema), authController.login.bind(authController));
 
-// Routes protégées - Authentification
+// Routes protÃ©gÃ©es - Authentification
 router.get('/auth/me', authenticate, authController.getProfile.bind(authController));
 router.put('/auth/:id', authenticate, validate(updateUserSchema), authController.updateUser.bind(authController));
 
-// Routes protégées - Administration (Admin seulement)
+// Routes protÃ©gÃ©es - Administration (Admin seulement)
 router.post('/auth/admin/create-user', authenticate, isAdmin, validate(adminCreateUserSchema), authController.createUserByAdmin.bind(authController));
 router.get('/auth/admin/users', authenticate, isAdmin, authController.getAllUsers.bind(authController));
 router.delete('/auth/admin/users/:id', authenticate, isAdmin, authController.softDeleteUser.bind(authController));
 
-// Routes protégées - Changement de mot de passe
+// Routes protÃ©gÃ©es - Changement de mot de passe
 router.put('/auth/change-password', authenticate, validate(changePasswordSchema), authController.changePassword.bind(authController));
 
-// Routes protégées - Catégories
+// Routes protÃ©gÃ©es - CatÃ©gories
 router.get('/categories', authenticate, categorieController.getAll.bind(categorieController));
 router.get('/categories/:id', authenticate, categorieController.getById.bind(categorieController));
 router.post('/categories', authenticate, validate(createCategorieSchema), categorieController.create.bind(categorieController));
 router.put('/categories/:id', authenticate, validate(updateCategorieSchema), categorieController.update.bind(categorieController));
 router.delete('/categories/:id', authenticate, categorieController.delete.bind(categorieController));
 
-// Routes protégées - Produits
+// Routes protÃ©gÃ©es - Produits
 router.get('/produits', authenticate, produitController.getAll.bind(produitController));
 router.get('/produits/:id', authenticate, produitController.getById.bind(produitController));
 router.post('/produits', authenticate, upload.single('image'), validate(createProduitSchema), uploadErrorHandler, produitController.create.bind(produitController));
@@ -128,10 +132,7 @@ router.put('/produits/:id', authenticate, validate(updateProduitSchema), produit
 router.delete('/produits/:id', authenticate, produitController.delete.bind(produitController));
 router.get('/produits/stock/alertes', authenticate, produitController.getLowStock.bind(produitController));
 
-// Servir les fichiers statiques (uploads)
-router.use('/uploads', express.static('uploads'));
-
-// Routes protégées - Clients
+// Routes protÃ©gÃ©es - Clients
 router.get('/clients', authenticate, clientController.getAll.bind(clientController));
 router.get('/clients/:id', authenticate, clientController.getById.bind(clientController));
 router.post('/clients', authenticate, validate(createClientSchema), clientController.create.bind(clientController));
@@ -139,25 +140,25 @@ router.put('/clients/:id', authenticate, validate(updateClientSchema), clientCon
 router.delete('/clients/:id', authenticate, clientController.delete.bind(clientController));
 router.get('/clients/credits', authenticate, clientController.getClientsWithCredit.bind(clientController));
 
-// Routes protégées - Ventes
+// Routes protÃ©gÃ©es - Ventes
 router.get('/ventes', authenticate, venteController.getAll.bind(venteController));
+router.get('/ventes/stats', authenticate, venteController.getStats.bind(venteController));
 router.get('/ventes/:id', authenticate, venteController.getById.bind(venteController));
 router.post('/ventes', authenticate, validate(createVenteSchema), venteController.create.bind(venteController));
 router.put('/ventes/:id', authenticate, validate(updateVenteSchema), venteController.update.bind(venteController));
 router.delete('/ventes/:id', authenticate, venteController.delete.bind(venteController));
-router.get('/ventes/stats', authenticate, venteController.getStats.bind(venteController));
 
-// Routes protégées - Paiements Crédit
+// Routes protÃ©gÃ©es - Paiements CrÃ©dit
 router.get('/paiements-credit', authenticate, paiementCreditController.getAll.bind(paiementCreditController));
 router.post('/paiements-credit', authenticate, validate(createPaiementCreditSchema), paiementCreditController.create.bind(paiementCreditController));
 router.delete('/paiements-credit/:id', authenticate, paiementCreditController.delete.bind(paiementCreditController));
 
-// Routes protégées - Mouvements de Stock
+// Routes protÃ©gÃ©es - Mouvements de Stock
 router.get('/mouvements-stock', authenticate, mouvementStockController.getAll.bind(mouvementStockController));
 router.post('/mouvements-stock', authenticate, validate(createMouvementStockSchema), mouvementStockController.create.bind(mouvementStockController));
 router.delete('/mouvements-stock/:id', authenticate, mouvementStockController.delete.bind(mouvementStockController));
 
-// Routes protégées - Notifications
+// Routes protÃ©gÃ©es - Notifications
 router.get('/notifications', authenticate, notificationController.getAll.bind(notificationController));
 router.get('/notifications/non-lues', authenticate, notificationController.getUnread.bind(notificationController));
 router.put('/notifications/:id/lire', authenticate, notificationController.markAsRead.bind(notificationController));
@@ -165,7 +166,7 @@ router.put('/notifications/tout-lire', authenticate, notificationController.mark
 router.post('/notifications', authenticate, validate(createNotificationSchema), notificationController.create.bind(notificationController));
 router.delete('/notifications/:id', authenticate, notificationController.delete.bind(notificationController));
 
-// Routes protégées - Configuration
+// Routes protÃ©gÃ©es - Configuration
 router.get('/configuration', authenticate, configurationController.get.bind(configurationController));
 router.post('/configuration', authenticate, validate(createConfigurationSchema), configurationController.save.bind(configurationController));
 
@@ -174,7 +175,7 @@ app.use('/api/v1', router);
 
 // Gestion des erreurs 404
 app.use((req, res, next) => {
-  return ApiResponse.error(res, `Ressource non trouvée: ${req.originalUrl}`, 404);
+  return ApiResponse.error(res, `Ressource non trouvÃ©e: ${req.originalUrl}`, 404);
 });
 
 // Gestion globale des erreurs
@@ -184,13 +185,13 @@ app.use((err, req, res, next) => {
   // Erreur Prisma
   if (err.code?.startsWith('P2')) {
     const prismaErrors = {
-      'P2002': 'Cette ressource existe déjà',
-      'P2003': 'Impossible de supprimer : données liées existantes',
-      'P2025': 'Ressource non trouvée',
-      'P2006': 'Valeur invalide pour le type de données'
+      'P2002': 'Cette ressource existe dÃ©jÃ ',
+      'P2003': 'Impossible de supprimer : donnÃ©es liÃ©es existantes',
+      'P2025': 'Ressource non trouvÃ©e',
+      'P2006': 'Valeur invalide pour le type de donnÃ©es'
     };
     
-    const message = prismaErrors[err.code] || 'Erreur base de données';
+    const message = prismaErrors[err.code] || 'Erreur base de donnÃ©es';
     return ApiResponse.error(res, message, 400);
   }
   
@@ -201,10 +202,10 @@ app.use((err, req, res, next) => {
       message: e.message,
       code: e.code
     }));
-    return ApiResponse.error(res, 'Validation échouée', 400, errors);
+    return ApiResponse.error(res, 'Validation Ã©chouÃ©e', 400, errors);
   }
   
-  // Réponse erreur par défaut
+  // RÃ©ponse erreur par dÃ©faut
   return ApiResponse.error(
     res, 
     err.message || 'Erreur serveur interne', 
@@ -212,40 +213,41 @@ app.use((err, req, res, next) => {
   );
 });
 
-// Démarrage du serveur
+// DÃ©marrage du serveur
 async function startServer() {
   try {
-    // Test de la connexion à la base de données
+    // Test de la connexion Ã  la base de donnÃ©es
     await prisma.$connect();
-    console.log('✅ Connecté à la base de données');
+    console.log('âœ… ConnectÃ© Ã  la base de donnÃ©es');
 
     // Bootstrap
     await bootstrapDefaultAdmin();
     await bootstrapDefaultConfiguration();
 
-    // Démarrer le serveur
+    // DÃ©marrer le serveur
     app.listen(config.port, () => {
-      console.log(`\n🚀 Serveur démarré sur le port ${config.port}`);
-      console.log(`📖 Documentation Swagger: http://localhost:${config.port}/api-docs`);
-      console.log(`🌐 API Endpoint: http://localhost:${config.port}/api/v1\n`);
+      console.log(`\nðŸš€ Serveur dÃ©marrÃ© sur le port ${config.port}`);
+      console.log(`ðŸ“– Documentation Swagger: http://localhost:${config.port}/api-docs`);
+      console.log(`ðŸŒ API Endpoint: http://localhost:${config.port}/api/v1\n`);
     });
   } catch (error) {
-    console.error('❌ Erreur lors du démarrage du serveur:', error);
+    console.error('âŒ Erreur lors du dÃ©marrage du serveur:', error);
     process.exit(1);
   }
 }
 
-// Gestion de l'arrêt propre
+// Gestion de l'arrÃªt propre
 process.on('SIGINT', async () => {
-  console.log('\n⏹️  Arrêt du serveur...');
+  console.log('\nâ¹ï¸  ArrÃªt du serveur...');
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('\n⏹️  Arrêt du serveur...');
+  console.log('\nâ¹ï¸  ArrÃªt du serveur...');
   await prisma.$disconnect();
   process.exit(0);
 });
 
 startServer();
+
