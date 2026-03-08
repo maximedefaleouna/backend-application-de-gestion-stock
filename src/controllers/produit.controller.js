@@ -10,7 +10,7 @@ class ProduitController {
    * @swagger
    * /produits:
    *   get:
-   *     summary: RÃ©cupÃ©rer tous les produits
+   *     summary: Récupérer tous les produits
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -63,7 +63,7 @@ class ProduitController {
         orderBy: { createdAt: 'desc' }
       });
 
-      return ApiResponse.success(res, produits, 'Produits rÃ©cupÃ©rÃ©s avec succÃ¨s');
+      return ApiResponse.success(res, produits, 'Produits récupérés avec succès');
     } catch (error) {
       console.error('Erreur getAll produits:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -74,7 +74,7 @@ class ProduitController {
    * @swagger
    * /produits/{id}:
    *   get:
-   *     summary: RÃ©cupÃ©rer un produit par ID
+   *     summary: Récupérer un produit par ID
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -86,9 +86,9 @@ class ProduitController {
    *           type: string
    *     responses:
    *       200:
-   *         description: Produit trouvÃ©
+   *         description: Produit trouvé
    *       404:
-   *         description: Produit non trouvÃ©
+   *         description: Produit non trouvé
    */
   async getById(req, res) {
     try {
@@ -116,10 +116,10 @@ class ProduitController {
       });
 
       if (!produit) {
-        return ApiResponse.error(res, 'Produit non trouvÃ©', 404);
+        return ApiResponse.error(res, 'Produit non trouvé', 404);
       }
 
-      return ApiResponse.success(res, produit, 'Produit rÃ©cupÃ©rÃ© avec succÃ¨s');
+      return ApiResponse.success(res, produit, 'Produit récupéré avec succès');
     } catch (error) {
       console.error('Erreur getById produit:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -130,7 +130,7 @@ class ProduitController {
    * @swagger
    * /produits:
    *   post:
-   *     summary: CrÃ©er un nouveau produit
+   *     summary: Créer un nouveau produit
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -163,13 +163,13 @@ class ProduitController {
    *                 type: boolean
    *     responses:
    *       201:
-   *         description: Produit crÃ©Ã©
+   *         description: Produit créé
    *       400:
-   *         description: DonnÃ©es invalides
+   *         description: Données invalides
    */
   async create(req, res) {
     try {
-      // GÃ©rer l'upload d'image si prÃ©sente
+      // Gérer l'upload d'image si présente
       let imageUrl = null;
       
       if (req.file) {
@@ -177,15 +177,15 @@ class ProduitController {
         imageUrl = `/uploads/products/${path.basename(req.file.path)}`;
       }
 
-      // Parser les donnÃ©es du body (sans imageUrl car gÃ©rÃ© sÃ©parÃ©ment)
+      // Parser les données du body (sans imageUrl car géré séparément)
       const productData = { ...req.body };
       
-      // Si une image a Ã©tÃ© uploadÃ©e, on l'ajoute
+      // Si une image a été uploadée, on l'ajoute
       if (imageUrl) {
         productData.imageUrl = imageUrl;
       }
 
-      // Convertir les types si nÃ©cessaire (les FormData envoient des strings)
+      // Convertir les types si nécessaire (les FormData envoient des strings)
       if (productData.sellPrice) productData.sellPrice = Number(productData.sellPrice);
       if (productData.buyPrice) productData.buyPrice = Number(productData.buyPrice);
       if (productData.stock !== undefined) productData.stock = Number(productData.stock);
@@ -202,7 +202,7 @@ class ProduitController {
       const validatedData = createProduitSchema.parse(productData);
       let categorieId = validatedData.category;
 
-      // Accepter soit un ID UUID, soit un nom de catÃ©gorie cÃ´tÃ© frontend
+      // Accepter soit un ID UUID, soit un nom de catégorie côté frontend
       if (!UUID_REGEX.test(categorieId)) {
         const categorie = await prisma.categorie.findFirst({
           where: { nom: categorieId },
@@ -210,18 +210,18 @@ class ProduitController {
         });
 
         if (!categorie) {
-          return ApiResponse.error(res, 'CatÃ©gorie invalide ou inexistante', 400);
+          return ApiResponse.error(res, 'Catégorie invalide ou inexistante', 400);
         }
         categorieId = categorie.id;
       }
 
-      // VÃ©rifier si la rÃ©fÃ©rence existe dÃ©jÃ 
+      // Vérifier si la référence existe déjà
       const existingProduit = await prisma.produit.findUnique({
         where: { reference: validatedData.reference }
       });
 
       if (existingProduit) {
-        return ApiResponse.error(res, 'Cette rÃ©fÃ©rence existe dÃ©jÃ ', 400);
+        return ApiResponse.error(res, 'Cette référence existe déjà', 400);
       }
 
       const produit = await prisma.produit.create({
@@ -240,7 +240,7 @@ class ProduitController {
         include: { categorie: true }
       });
 
-      return ApiResponse.created(res, produit, 'Produit crÃ©Ã© avec succÃ¨s');
+      return ApiResponse.created(res, produit, 'Produit créé avec succès');
     } catch (error) {
       if (error instanceof z.ZodError) {
         const issues = error.issues || error.errors || [];
@@ -249,10 +249,10 @@ class ProduitController {
           message: err.message,
           code: err.code
         }));
-        return ApiResponse.error(res, 'Validation Ã©chouÃ©e', 400, errors);
+        return ApiResponse.error(res, 'Validation échouée', 400, errors);
       }
       if (error.code === 'P2002') {
-        return ApiResponse.error(res, 'RÃ©fÃ©rence dÃ©jÃ  utilisÃ©e', 400);
+        return ApiResponse.error(res, 'Référence déjà utilisée', 400);
       }
       console.error('Erreur create produit:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -263,7 +263,7 @@ class ProduitController {
    * @swagger
    * /produits/{id}:
    *   put:
-   *     summary: Mettre Ã  jour un produit
+   *     summary: Mettre à jour un produit
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -281,9 +281,9 @@ class ProduitController {
    *             type: object
    *     responses:
    *       200:
-   *         description: Produit mis Ã  jour
+   *         description: Produit mis à jour
    *       404:
-   *         description: Produit non trouvÃ©
+   *         description: Produit non trouvé
    */
   async update(req, res) {
     try {
@@ -310,7 +310,7 @@ class ProduitController {
           });
 
           if (!categorie) {
-            return ApiResponse.error(res, 'CatÃ©gorie invalide ou inexistante', 400);
+            return ApiResponse.error(res, 'Catégorie invalide ou inexistante', 400);
           }
           categorieId = categorie.id;
         }
@@ -323,7 +323,7 @@ class ProduitController {
         include: { categorie: true }
       });
 
-      return ApiResponse.success(res, produit, 'Produit mis Ã  jour avec succÃ¨s');
+      return ApiResponse.success(res, produit, 'Produit mis à jour avec succès');
     } catch (error) {
       if (error instanceof z.ZodError) {
         const issues = error.issues || error.errors || [];
@@ -332,10 +332,10 @@ class ProduitController {
           message: err.message,
           code: err.code
         }));
-        return ApiResponse.error(res, 'Validation Ã©chouÃ©e', 400, errors);
+        return ApiResponse.error(res, 'Validation échouée', 400, errors);
       }
       if (error.code === 'P2025') {
-        return ApiResponse.error(res, 'Produit non trouvÃ©', 404);
+        return ApiResponse.error(res, 'Produit non trouvé', 404);
       }
       console.error('Erreur update produit:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -358,9 +358,9 @@ class ProduitController {
    *           type: string
    *     responses:
    *       200:
-   *         description: Produit supprimÃ©
+   *         description: Produit supprimé
    *       404:
-   *         description: Produit non trouvÃ©
+   *         description: Produit non trouvé
    */
   async delete(req, res) {
     try {
@@ -370,10 +370,10 @@ class ProduitController {
         where: { id }
       });
 
-      return ApiResponse.success(res, null, 'Produit supprimÃ© avec succÃ¨s');
+      return ApiResponse.success(res, null, 'Produit supprimé avec succès');
     } catch (error) {
       if (error.code === 'P2025') {
-        return ApiResponse.error(res, 'Produit non trouvÃ©', 404);
+        return ApiResponse.error(res, 'Produit non trouvé', 404);
       }
       console.error('Erreur delete produit:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);
@@ -384,7 +384,7 @@ class ProduitController {
    * @swagger
    * /produits/stock/alertes:
    *   get:
-   *     summary: RÃ©cupÃ©rer les produits avec stock faible
+   *     summary: Récupérer les produits avec stock faible
    *     tags: [Produits]
    *     security:
    *       - bearerAuth: []
@@ -405,7 +405,7 @@ class ProduitController {
         }
       });
 
-      return ApiResponse.success(res, produits, 'Produits avec stock faible rÃ©cupÃ©rÃ©s avec succÃ¨s');
+      return ApiResponse.success(res, produits, 'Produits avec stock faible récupérés avec succès');
     } catch (error) {
       console.error('Erreur getLowStock produits:', error);
       return ApiResponse.error(res, 'Erreur serveur', 500);

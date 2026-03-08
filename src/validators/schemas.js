@@ -21,22 +21,22 @@ const stringArrayFromMixed = z.preprocess((value) => {
   }
   return [];
 }, z.array(z.string()));
-// SchÃ©ma pour crÃ©er un utilisateur (par admin seulement - sans mot de passe)
+// Schéma pour créer un utilisateur (par admin seulement - sans mot de passe)
 const createUserSchema = z.object({
-  nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractÃ¨res'),
-  prenom: z.string().min(2, 'Le prÃ©nom doit contenir au moins 2 caractÃ¨res'),
+  nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  prenom: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
   email: z.string().email('Email invalide'),
-  telephone: z.string().min(8, 'NumÃ©ro de tÃ©lÃ©phone invalide'),
+  telephone: z.string().min(8, 'Numéro de téléphone invalide'),
   role: z.enum(['admin', 'vendeur']).optional(),
   actif: z.boolean().optional()
 });
 
-// SchÃ©ma pour la crÃ©ation par admin avec mot de passe automatique
+// Schéma pour la création par admin avec mot de passe automatique
 const adminCreateUserSchema = z.object({
-  nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractÃ¨res'),
-  prenom: z.string().min(2, 'Le prÃ©nom doit contenir au moins 2 caractÃ¨res'),
+  nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  prenom: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
   email: z.string().email('Email invalide'),
-  telephone: z.string().min(8, 'NumÃ©ro de tÃ©lÃ©phone invalide'),
+  telephone: z.string().min(8, 'Numéro de téléphone invalide'),
   role: z.enum(['admin', 'vendeur']).default('vendeur'),
   actif: z.boolean().default(true)
 });
@@ -50,21 +50,21 @@ const updateUserSchema = z.object({
   actif: z.boolean().optional()
 });
 
-// SchÃ©ma pour changer son propre mot de passe
+// Schéma pour changer son propre mot de passe
 const changePasswordSchema = z.object({
   oldPassword: z.string().min(1, 'L\'ancien mot de passe est requis'),
-  newPassword: z.string().min(6, 'Le nouveau mot de passe doit contenir au moins 6 caractÃ¨res')
+  newPassword: z.string().min(6, 'Le nouveau mot de passe doit contenir au moins 6 caractères')
 });
 
-// SchÃ©ma pour le login
+// Schéma pour le login
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
   motDePasse: z.string().min(1, 'Mot de passe requis')
 });
 
-// SchÃ©ma pour les catÃ©gories
+// Schéma pour les catégories
 const createCategorieSchema = z.object({
-  nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractÃ¨res'),
+  nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   description: z.string().optional()
 });
 
@@ -73,16 +73,16 @@ const updateCategorieSchema = z.object({
   description: z.string().optional()
 });
 
-// SchÃ©ma pour les produits (CORRESPOND EXACTEMENT AU FRONTEND)
+// Schéma pour les produits (CORRESPOND EXACTEMENT AU FRONTEND)
 const createProduitSchema = z.object({
-  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractÃ¨res'),
-  reference: z.string().min(2, 'La rÃ©fÃ©rence est requise'),
+  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  reference: z.string().min(2, 'La référence est requise'),
   description: z.string().optional().default(''),
-  category: z.string().min(1, 'La catÃ©gorie est requise'),
+  category: z.string().min(1, 'La catégorie est requise'),
   brand: z.string().min(1, 'La marque est requise'),
   compatibleVehicles: stringArrayFromMixed.optional().default([]),
-  buyPrice: z.coerce.number().nonnegative('Le prix d\'achat doit Ãªtre positif').optional().default(0),
-  sellPrice: z.coerce.number().nonnegative('Le prix de vente doit Ãªtre positif'),
+  buyPrice: z.coerce.number().nonnegative('Le prix d\'achat doit être positif').optional().default(0),
+  sellPrice: z.coerce.number().nonnegative('Le prix de vente doit être positif'),
   stock: z.coerce.number().int().nonnegative().optional().default(0),
   minStock: z.coerce.number().int().nonnegative().optional().default(5),
   imageUrl: z
@@ -119,10 +119,10 @@ const updateProduitSchema = z.object({
   available: booleanFromMixed.optional()
 });
 
-// SchÃ©ma pour les clients
+// Schéma pour les clients
 const createClientSchema = z.object({
-  nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractÃ¨res'),
-  telephone: z.string().min(8, 'NumÃ©ro de tÃ©lÃ©phone invalide'),
+  nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  telephone: z.string().min(8, 'Numéro de téléphone invalide'),
   email: z.string().email().optional().nullable(),
   adresse: z.string().optional().nullable(),
   totalCredit: z.number().int().nonnegative().optional(),
@@ -138,7 +138,7 @@ const updateClientSchema = z.object({
   totalPaye: z.number().int().nonnegative().optional()
 });
 
-// SchÃ©ma pour les ventes (CORRESPOND AU SCHEMA PRISMA - Int pas Decimal)
+// Schéma pour les ventes (CORRESPOND AU SCHEMA PRISMA - Int pas Decimal)
 const createVenteSchema = z.object({
   montantTotal: z.number().int().nonnegative(),
   montantPaye: z.number().int().nonnegative().optional(),
@@ -162,15 +162,15 @@ const updateVenteSchema = z.object({
   estCredit: z.boolean().optional()
 });
 
-// SchÃ©ma pour les paiements de crÃ©dit
+// Schéma pour les paiements de crédit
 const createPaiementCreditSchema = z.object({
   clientId: z.string().uuid(),
   venteId: z.string().uuid(),
-  montant: z.number().positive('Le montant doit Ãªtre positif'),
+  montant: z.number().positive('Le montant doit être positif'),
   modePaiement: z.enum(['espece', 'mobile_money', 'carte', 'credit'])
 });
 
-// SchÃ©ma pour les mouvements de stock
+// Schéma pour les mouvements de stock
 const createMouvementStockSchema = z.object({
   produitId: z.string().uuid(),
   type: z.enum(['entree', 'sortie', 'ajustement']),
@@ -178,7 +178,7 @@ const createMouvementStockSchema = z.object({
   motif: z.string().min(2, 'Le motif est requis')
 });
 
-// SchÃ©ma pour les notifications
+// Schéma pour les notifications
 const createNotificationSchema = z.object({
   type: z.enum(['vente', 'stock', 'credit', 'systeme']),
   titre: z.string().min(2, 'Le titre est requis'),
@@ -186,7 +186,7 @@ const createNotificationSchema = z.object({
   utilisateurId: z.string().uuid().optional().nullable()
 });
 
-// SchÃ©ma pour la configuration
+// Schéma pour la configuration
 const createConfigurationSchema = z.object({
   nom: z.string().min(2),
   nomChef: z.string().min(2),
