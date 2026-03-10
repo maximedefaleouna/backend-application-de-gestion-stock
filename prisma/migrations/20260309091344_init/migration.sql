@@ -21,6 +21,7 @@ CREATE TABLE "utilisateurs" (
     "email" TEXT NOT NULL,
     "motDePasse" TEXT NOT NULL,
     "telephone" TEXT NOT NULL,
+    "indicatif" TEXT NOT NULL DEFAULT '+228',
     "role" "RoleUtilisateur" NOT NULL DEFAULT 'vendeur',
     "actif" BOOLEAN NOT NULL DEFAULT true,
     "cree_le" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -65,6 +66,7 @@ CREATE TABLE "clients" (
     "id" TEXT NOT NULL,
     "nom" TEXT NOT NULL,
     "telephone" TEXT NOT NULL,
+    "indicatif" TEXT NOT NULL DEFAULT '+228',
     "email" TEXT,
     "adresse" TEXT,
     "total_credit" INTEGER NOT NULL DEFAULT 0,
@@ -78,6 +80,7 @@ CREATE TABLE "clients" (
 -- CreateTable
 CREATE TABLE "ventes" (
     "id" TEXT NOT NULL,
+    "vente_number" SERIAL NOT NULL,
     "montant_total" INTEGER NOT NULL,
     "montant_paye" INTEGER NOT NULL DEFAULT 0,
     "montant_restant" INTEGER NOT NULL DEFAULT 0,
@@ -165,6 +168,9 @@ CREATE UNIQUE INDEX "categories_nom_key" ON "categories"("nom");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "produits_reference_key" ON "produits"("reference");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ventes_vente_number_key" ON "ventes"("vente_number");
 
 -- AddForeignKey
 ALTER TABLE "produits" ADD CONSTRAINT "produits_categorie_id_fkey" FOREIGN KEY ("categorie_id") REFERENCES "categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -45,13 +45,15 @@ class NotificationController {
    */
   async getUnread(req, res) {
     try {
+      const whereClause = {
+        lu: false,
+        ...(req.user.role === 'admin'
+          ? {}
+          : { OR: [{ utilisateurId: req.user.userId }, { utilisateurId: null }] })
+      };
+
       const notifications = await prisma.notification.findMany({
-        where: {
-          lu: false,
-          OR: req.user.role === 'admin'
-            ? {}
-            : [{ utilisateurId: req.user.userId }, { utilisateurId: null }]
-        },
+        where: whereClause,
         orderBy: { createdAt: 'desc' }
       });
 

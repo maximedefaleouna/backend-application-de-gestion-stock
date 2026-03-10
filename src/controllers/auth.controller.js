@@ -64,7 +64,7 @@ class AuthController {
    *                   example: true
    *                 message:
    *                   type: string
-   *                   example: Utilisateur créé avec succès. Mot de passe temporaire: 123456
+   *                   example: 'Utilisateur créé avec succès. Mot de passe temporaire: 123456'
    *                 data:
    *                   type: object
    *                   properties:
@@ -128,6 +128,7 @@ class AuthController {
           prenom: true,
           email: true,
           telephone: true,
+          indicatif: true,
           role: true,
           actif: true,
           createdAt: true
@@ -216,6 +217,7 @@ class AuthController {
           prenom: true,
           email: true,
           telephone: true,
+          indicatif: true,
           role: true,
           actif: true,
           createdAt: true,
@@ -537,22 +539,45 @@ class AuthController {
         data: { derniereConnexion: new Date() }
       });
 
+      // Re-fetch the user to get updated derniereConnexion and createdAt
+      const updatedUtilisateur = await prisma.utilisateur.findUnique({
+        where: { id: utilisateur.id },
+        select: {
+          id: true,
+          nom: true,
+          prenom: true,
+          email: true,
+          telephone: true,
+          indicatif: true,
+          role: true,
+          createdAt: true,
+          derniereConnexion: true
+        }
+      });
+
+      if (!updatedUtilisateur) {
+        return ApiResponse.error(res, 'Utilisateur non trouvé', 404);
+      }
+
       // Générer le token JWT
       const token = JwtUtils.generateToken({
-        userId: utilisateur.id,
-        email: utilisateur.email,
-        role: utilisateur.role
+        userId: updatedUtilisateur.id,
+        email: updatedUtilisateur.email,
+        role: updatedUtilisateur.role
       });
 
       const responseData = {
         token,
         utilisateur: {
-          id: utilisateur.id,
-          nom: utilisateur.nom,
-          prenom: utilisateur.prenom,
-          email: utilisateur.email,
-          role: utilisateur.role,
-          avatar: utilisateur.avatar
+          id: updatedUtilisateur.id,
+          nom: updatedUtilisateur.nom,
+          prenom: updatedUtilisateur.prenom,
+          email: updatedUtilisateur.email,
+          telephone: updatedUtilisateur.telephone,
+          indicatif: updatedUtilisateur.indicatif,
+          role: updatedUtilisateur.role,
+          createdAt: updatedUtilisateur.createdAt,
+          derniereConnexion: updatedUtilisateur.derniereConnexion
         }
       };
 
@@ -659,6 +684,7 @@ class AuthController {
           prenom: true,
           email: true,
           telephone: true,
+          indicatif: true,
           role: true,
           actif: true,
           createdAt: true,
@@ -791,6 +817,7 @@ class AuthController {
           prenom: true,
           email: true,
           telephone: true,
+          indicatif: true,
           role: true,
           actif: true
         }

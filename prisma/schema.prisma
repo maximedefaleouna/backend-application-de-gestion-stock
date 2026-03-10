@@ -55,6 +55,7 @@ model Utilisateur {
   email     String   @unique
   motDePasse String
   telephone String
+  indicatif String  @default("+228")
   role      RoleUtilisateur @default(vendeur)
   actif     Boolean  @default(true)
   createdAt    DateTime @default(now()) @map("cree_le")
@@ -109,6 +110,7 @@ model Client {
   id          String   @id @default(uuid())
   nom         String
   telephone   String
+  indicatif   String   @default("+228")
   email       String?
   adresse     String?
   totalCredit Int  @default(0)  @map("total_credit")
@@ -125,6 +127,7 @@ model Client {
 
 model Vente {
   id              String        @id @default(uuid())
+  venteNumber     Int           @unique @default(autoincrement()) @map("vente_number")
   montantTotal    Int        @map("montant_total")
   montantPaye     Int       @default(0)  @map("montant_paye")
   montantRestant  Int       @default(0)  @map("montant_restant")

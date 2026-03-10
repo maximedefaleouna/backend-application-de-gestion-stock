@@ -13,6 +13,7 @@ const categorieController = require('./controllers/categorie.controller');
 const produitController = require('./controllers/produit.controller');
 const clientController = require('./controllers/client.controller');
 const venteController = require('./controllers/vente.controller');
+const dashboardController = require('./controllers/dashboard.controller');
 const paiementCreditController = require('./controllers/paiementCredit.controller');
 const mouvementStockController = require('./controllers/mouvementStock.controller');
 const notificationController = require('./controllers/notification.controller');
@@ -107,15 +108,17 @@ router.post('/auth/login', validate(loginSchema), authController.login.bind(auth
 
 // Routes protégées - Authentification
 router.get('/auth/me', authenticate, authController.getProfile.bind(authController));
+
+// Routes protégées - Changement de mot de passe (DOIT ÊTRE AVANT /auth/:id)
+router.put('/auth/change-password', authenticate, validate(changePasswordSchema), authController.changePassword.bind(authController));
+
+// Route protégée - Mise à jour profil utilisateur
 router.put('/auth/:id', authenticate, validate(updateUserSchema), authController.updateUser.bind(authController));
 
 // Routes protégées - Administration (Admin seulement)
 router.post('/auth/admin/create-user', authenticate, isAdmin, validate(adminCreateUserSchema), authController.createUserByAdmin.bind(authController));
 router.get('/auth/admin/users', authenticate, isAdmin, authController.getAllUsers.bind(authController));
 router.delete('/auth/admin/users/:id', authenticate, isAdmin, authController.softDeleteUser.bind(authController));
-
-// Routes protégées - Changement de mot de passe
-router.put('/auth/change-password', authenticate, validate(changePasswordSchema), authController.changePassword.bind(authController));
 
 // Routes protégées - Catégories
 router.get('/categories', authenticate, categorieController.getAll.bind(categorieController));
@@ -148,8 +151,14 @@ router.post('/ventes', authenticate, validate(createVenteSchema), venteControlle
 router.put('/ventes/:id', authenticate, validate(updateVenteSchema), venteController.update.bind(venteController));
 router.delete('/ventes/:id', authenticate, venteController.delete.bind(venteController));
 
+// Routes protégées - Dashboard & Statistiques
+router.get('/dashboard', authenticate, dashboardController.getDashboard.bind(dashboardController));
+router.get('/statistiques', authenticate, dashboardController.getStatistiques.bind(dashboardController));
+
 // Routes protégées - Paiements Crédit
 router.get('/paiements-credit', authenticate, paiementCreditController.getAll.bind(paiementCreditController));
+router.get('/paiements-credit/all', authenticate, paiementCreditController.getAllDebts.bind(paiementCreditController));
+router.get('/paiements-credit/client/:clientId', authenticate, paiementCreditController.getClientDebts.bind(paiementCreditController));
 router.post('/paiements-credit', authenticate, validate(createPaiementCreditSchema), paiementCreditController.create.bind(paiementCreditController));
 router.delete('/paiements-credit/:id', authenticate, paiementCreditController.delete.bind(paiementCreditController));
 

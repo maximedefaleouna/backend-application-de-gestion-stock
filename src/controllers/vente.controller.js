@@ -75,7 +75,13 @@ class VenteController {
         orderBy: { createdAt: 'desc' }
       });
 
-      res.json({ data: ventes });
+      // Formater les numeros de vente
+      const formattedVentes = ventes.map(vente => ({
+        ...vente,
+        formattedVenteNumber: `V-${String(vente.venteNumber).padStart(7, '0')}`
+      }));
+
+      res.json({ data: formattedVentes });
     } catch (error) {
       console.error('Erreur getAll ventes:', error);
       res.status(500).json({ error: 'Erreur serveur' });
@@ -128,7 +134,13 @@ class VenteController {
         return res.status(404).json({ error: 'Vente non trouvée' });
       }
 
-      res.json({ data: vente });
+      // Ajouter le numero de vente formaté
+      const formattedVente = {
+        ...vente,
+        formattedVenteNumber: `V-${String(vente.venteNumber).padStart(7, '0')}`
+      };
+
+      res.json({ data: formattedVente });
     } catch (error) {
       console.error('Erreur getById vente:', error);
       res.status(500).json({ error: 'Erreur serveur' });
@@ -205,7 +217,7 @@ class VenteController {
         }
       }
 
-      // Créer la vente avec les articles
+      // Créer la vente avec les articles (venteNumber est auto-généré)
       const vente = await prisma.vente.create({
         data: {
           ...venteData,
@@ -269,9 +281,15 @@ class VenteController {
         });
       }
 
+      // Formater le numero de vente (V-0000001, V-0000002, etc.)
+      const formattedVenteNumber = `V-${String(vente.venteNumber).padStart(7, '0')}`;
+
       res.status(201).json({
         message: 'Vente créée avec succès',
-        data: vente
+        data: {
+          ...vente,
+          formattedVenteNumber
+        }
       });
     } catch (error) {
       if (error instanceof z.ZodError) {

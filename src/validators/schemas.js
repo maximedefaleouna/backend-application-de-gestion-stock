@@ -27,6 +27,7 @@ const createUserSchema = z.object({
   prenom: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
   email: z.string().email('Email invalide'),
   telephone: z.string().min(8, 'Numéro de téléphone invalide'),
+  indicatif: z.string().optional().default('+228'),
   role: z.enum(['admin', 'vendeur']).optional(),
   actif: z.boolean().optional()
 });
@@ -37,6 +38,7 @@ const adminCreateUserSchema = z.object({
   prenom: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
   email: z.string().email('Email invalide'),
   telephone: z.string().min(8, 'Numéro de téléphone invalide'),
+  indicatif: z.string().optional().default('+228'),
   role: z.enum(['admin', 'vendeur']).default('vendeur'),
   actif: z.boolean().default(true)
 });
@@ -46,6 +48,7 @@ const updateUserSchema = z.object({
   prenom: z.string().min(2).optional(),
   email: z.string().email().optional(),
   telephone: z.string().min(8).optional(),
+  indicatif: z.string().optional(),
   role: z.enum(['admin', 'vendeur']).optional(),
   actif: z.boolean().optional()
 });
@@ -123,6 +126,7 @@ const updateProduitSchema = z.object({
 const createClientSchema = z.object({
   nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   telephone: z.string().min(8, 'Numéro de téléphone invalide'),
+  indicatif: z.string().optional().default('+228'),
   email: z.string().email().optional().nullable(),
   adresse: z.string().optional().nullable(),
   totalCredit: z.number().int().nonnegative().optional(),
@@ -132,6 +136,7 @@ const createClientSchema = z.object({
 const updateClientSchema = z.object({
   nom: z.string().min(2).optional(),
   telephone: z.string().min(8).optional(),
+  indicatif: z.string().optional(),
   email: z.string().email().optional().nullable(),
   adresse: z.string().optional().nullable(),
   totalCredit: z.number().int().nonnegative().optional(),
