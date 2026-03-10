@@ -6,6 +6,8 @@ const cors = require('cors');
 const z = require('zod');
 require('dotenv').config();
 
+PORT = process.env.PORT || config.PORT;
+
 const config = require('./config/env');
 const prisma = require('./config/database');
 const authController = require('./controllers/auth.controller');
@@ -235,12 +237,12 @@ async function startServer() {
 
     // Démarrer le serveur
     app.listen(config.port, () => {
-      console.log(`\n🚀 Serveur démarré sur le port ${config.port}`);
-      console.log(`📖 Documentation Swagger: http://localhost:${config.port}/api-docs`);
-      console.log(`🌐 API Endpoint: http://localhost:${config.port}/api/v1\n`);
+      console.log(`\n🚀 Serveur démarré sur le port ${PORT}`);
+      console.log(`📖 Documentation Swagger: http://localhost:${PORT}/api-docs`);
+      console.log(`🌐 API Endpoint: http://localhost:${PORT}/api/v1\n`);
     });
   } catch (error) {
-    console.error('❌ Erreur lors du démarrage du serveur:', error);
+    console.error(' Erreur lors du démarrage du serveur:', error);
     process.exit(1);
   }
 }
