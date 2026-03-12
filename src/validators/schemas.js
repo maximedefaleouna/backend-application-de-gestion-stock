@@ -127,8 +127,8 @@ const createClientSchema = z.object({
   nom: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   telephone: z.string().min(8, 'Numéro de téléphone invalide'),
   indicatif: z.string().optional().default('+228'),
-  email: z.string().email().optional().nullable(),
-  adresse: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
+  adresse: z.string().optional().nullable().or(z.literal('')),
   totalCredit: z.number().int().nonnegative().optional(),
   totalPaye: z.number().int().nonnegative().optional()
 });
@@ -137,8 +137,8 @@ const updateClientSchema = z.object({
   nom: z.string().min(2).optional(),
   telephone: z.string().min(8).optional(),
   indicatif: z.string().optional(),
-  email: z.string().email().optional().nullable(),
-  adresse: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
+  adresse: z.string().optional().nullable().or(z.literal('')),
   totalCredit: z.number().int().nonnegative().optional(),
   totalPaye: z.number().int().nonnegative().optional()
 });

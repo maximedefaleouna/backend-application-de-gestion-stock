@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { createVenteSchema, updateVenteSchema } = require('../validators/schemas');
 const z = require('zod');
+const { logHistorique } = require('../utils/historique');
 
 class VenteController {
   /**
@@ -283,6 +284,21 @@ class VenteController {
 
       // Formater le numero de vente (V-0000001, V-0000002, etc.)
       const formattedVenteNumber = `V-${String(vente.venteNumber).padStart(7, '0')}`;
+
+      // Logger la création de la vente
+      await logHistorique({
+        action: 'vente',
+        entite: 'vente',
+        entiteId: vente.id,
+        description: `Vente #${formattedVenteNumber} créée - Montant: ${vente.montantTotal} FCFA`,
+        utilisateurId: req.user.userId,
+        donneesApres: {
+          ...vente,
+          formattedVenteNumber,
+          articles: vente.articles
+        },
+        req,
+      });
 
       res.status(201).json({
         message: 'Vente créée avec succès',

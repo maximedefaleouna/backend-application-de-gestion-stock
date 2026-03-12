@@ -20,6 +20,7 @@ const paiementCreditController = require('./controllers/paiementCredit.controlle
 const mouvementStockController = require('./controllers/mouvementStock.controller');
 const notificationController = require('./controllers/notification.controller');
 const configurationController = require('./controllers/configuration.controller');
+const historiqueController = require('./controllers/historique.controller');
 const { authenticate, isAdmin } = require('./middlewares/auth.middleware');
 const validate = require('./middlewares/validate.middleware');
 const { upload, uploadErrorHandler } = require('./middlewares/upload.middleware');
@@ -180,6 +181,10 @@ router.delete('/notifications/:id', authenticate, notificationController.delete.
 // Routes protégées - Configuration
 router.get('/configuration', authenticate, configurationController.get.bind(configurationController));
 router.post('/configuration', authenticate, validate(createConfigurationSchema), configurationController.save.bind(configurationController));
+
+// Routes protégées - Historique (Admin seulement)
+router.get('/historique', authenticate, isAdmin, historiqueController.getAll.bind(historiqueController));
+router.get('/historique/stats', authenticate, isAdmin, historiqueController.getStats.bind(historiqueController));
 
 // Utilisation du routeur
 app.use('/api/v1', router);

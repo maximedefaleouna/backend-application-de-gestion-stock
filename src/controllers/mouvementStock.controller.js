@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { createMouvementStockSchema } = require('../validators/schemas');
 const z = require('zod');
+const { logHistorique } = require('../utils/historique');
 
 class MouvementStockController {
   /**
@@ -118,6 +119,17 @@ class MouvementStockController {
           }
         });
       }
+
+      // Logger le mouvement
+      await logHistorique({
+        action: 'mouvement_stock',
+        entite: 'stock',
+        entiteId: mouvement.id,
+        description: `Mouvement ${validatedData.type} de ${validatedData.quantite} unités pour ${mouvement.produit.nom}`,
+        utilisateurId: req.user.userId,
+        donneesApres: mouvement,
+        req,
+      });
 
       res.status(201).json({
         message: 'Mouvement de stock créé avec succès',

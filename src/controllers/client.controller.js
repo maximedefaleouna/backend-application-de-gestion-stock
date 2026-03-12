@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { createClientSchema, updateClientSchema } = require('../validators/schemas');
 const z = require('zod');
+const { logHistorique } = require('../utils/historique');
 
 class ClientController {
   /**
@@ -136,6 +137,17 @@ class ClientController {
         data: validatedData
       });
 
+      // Logger la création
+      await logHistorique({
+        action: 'creation',
+        entite: 'client',
+        entiteId: client.id,
+        description: `Client ${client.nom} créé`,
+        utilisateurId: req.user.userId,
+        donneesApres: client,
+        req,
+      });
+
       res.status(201).json({
         message: 'Client créé avec succès',
         data: client
@@ -183,9 +195,24 @@ class ClientController {
       const { id } = req.params;
       const validatedData = updateClientSchema.parse(req.body);
 
+      // Récupérer l'ancien client pour comparaison
+      const oldClient = await prisma.client.findUnique({ where: { id } });
+
       const client = await prisma.client.update({
         where: { id },
         data: validatedData
+      });
+
+      // Logger la modification
+      await logHistorique({
+        action: 'modification',
+        entite: 'client',
+        entiteId: client.id,
+        description: `Client ${client.nom} modifié`,
+        utilisateurId: req.user.userId,
+        donneesAvant: oldClient,
+        donneesApres: client,
+        req,
       });
 
       res.json({

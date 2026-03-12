@@ -47,6 +47,18 @@ enum TypeNotification {
   systeme
 }
 
+enum ActionHistorique {
+  creation
+  modification
+  suppression
+  connexion
+  deconnexion
+  vente
+  paiement
+  mouvement_stock
+  consultation
+}
+
 // Models
 model Utilisateur {
   id        String   @id @default(uuid())
@@ -65,6 +77,7 @@ model Utilisateur {
   // Relations
   ventes     Vente[]
   mouvementsStock MouvementStock[]
+  historiques Historique[]
 
   @@map("utilisateurs")
 }
@@ -206,6 +219,29 @@ model Notification {
   createdAt    DateTime         @default(now()) @map("cree_le")
 
   @@map("notifications")
+}
+
+model Historique {
+  id            String           @id @default(uuid())
+  action        ActionHistorique
+  entite        String           // ex: "vente", "produit", "client", etc.
+  entiteId      String?          @map("entite_id")
+  description   String           @db.Text
+  utilisateurId String?          @map("utilisateur_id")
+  donneesAvant  Json?            @map("donnees_avant")
+  donneesApres  Json?            @map("donnees_apres")
+  adresseIP     String?          @map("adresse_ip")
+  userAgent     String?          @map("user_agent")
+  createdAt     DateTime         @default(now()) @map("cree_le")
+
+  // Relations
+  utilisateur   Utilisateur?     @relation(fields: [utilisateurId], references: [id])
+
+  @@index([entite])
+  @@index([utilisateurId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("historique")
 }
 
 

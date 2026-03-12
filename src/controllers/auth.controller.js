@@ -4,6 +4,7 @@ const JwtUtils = require('../utils/jwt');
 const { createUserSchema, adminCreateUserSchema, updateUserSchema, changePasswordSchema, loginSchema } = require('../validators/schemas');
 const {z} = require('zod');
 const ApiResponse = require('../utils/apiResponse');
+const { logHistorique } = require('../utils/historique');
 
 class AuthController {
   /**
@@ -135,6 +136,9 @@ class AuthController {
         }
       });
 
+      // Logger la création
+      await this.#logUserCreation(req, utilisateur);
+
       return ApiResponse.created(
         res, 
         utilisateur, 
@@ -151,6 +155,23 @@ class AuthController {
       }
       console.error('Erreur createUserByAdmin:', error);
       return ApiResponse.error(res, 'Erreur serveur lors de la création', 500);
+    }
+  }
+
+  // Logger la création d'utilisateur
+  async #logUserCreation(req, utilisateur) {
+    try {
+      await logHistorique({
+        action: 'creation',
+        entite: 'utilisateur',
+        entiteId: utilisateur.id,
+        description: `Utilisateur ${utilisateur.prenom} ${utilisateur.nom} créé par ${req.user?.prenom || ''} ${req.user?.nom || ''}`,
+        utilisateurId: req.user.userId,
+        donneesApres: utilisateur,
+        req,
+      });
+    } catch (error) {
+      console.error('Erreur logging creation utilisateur:', error);
     }
   }
 
@@ -581,6 +602,16 @@ class AuthController {
         }
       };
 
+      // Logger la connexion
+      await logHistorique({
+        action: 'connexion',
+        entite: 'utilisateur',
+        entiteId: updatedUtilisateur.id,
+        description: `${updatedUtilisateur.prenom} ${updatedUtilisateur.nom} s'est connecté(e)`,
+        utilisateurId: updatedUtilisateur.id,
+        req,
+      });
+
       return ApiResponse.success(res, responseData, 'Connexion réussie');
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -821,6 +852,18 @@ class AuthController {
           role: true,
           actif: true
         }
+      });
+
+      // Logger la modification
+      await logHistorique({
+        action: 'modification',
+        entite: 'utilisateur',
+        entiteId: utilisateur.id,
+        description: `Utilisateur ${utilisateur.prenom} ${utilisateur.nom} modifié`,
+        utilisateurId: req.user.userId,
+        donneesAvant: await prisma.utilisateur.findUnique({ where: { id } }),
+        donneesApres: utilisateur,
+        req,
       });
 
       return ApiResponse.success(res, utilisateur, 'Utilisateur mis à jour avec succès');

@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { createPaiementCreditSchema } = require('../validators/schemas');
 const z = require('zod');
+const { logHistorique } = require('../utils/historique');
 
 class PaiementCreditController {
   /**
@@ -424,6 +425,17 @@ class PaiementCreditController {
       } catch (notifError) {
         console.error('Erreur création notification:', notifError);
       }
+
+      // Logger le paiement
+      await logHistorique({
+        action: 'paiement',
+        entite: 'paiement',
+        entiteId: paiement.id,
+        description: `Paiement de ${validatedData.montant} F reçu de ${vente.client.nom} pour la vente #${vente.id}`,
+        utilisateurId: req.user.userId,
+        donneesApres: { paiement, vente: updatedVente },
+        req,
+      });
 
       res.status(201).json({
         success: true,

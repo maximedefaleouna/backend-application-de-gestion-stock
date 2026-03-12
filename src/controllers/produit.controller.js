@@ -4,6 +4,7 @@ const ApiResponse = require('../utils/apiResponse');
 const z = require('zod');
 const path = require('path');
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { logHistorique } = require('../utils/historique');
 
 class ProduitController {
   /**
@@ -240,6 +241,17 @@ class ProduitController {
         include: { categorie: true }
       });
 
+      // Logger la création
+      await logHistorique({
+        action: 'creation',
+        entite: 'produit',
+        entiteId: produit.id,
+        description: `Produit ${produit.nom} (${produit.reference}) créé`,
+        utilisateurId: req.user.userId,
+        donneesApres: produit,
+        req,
+      });
+
       return ApiResponse.created(res, produit, 'Produit créé avec succès');
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -323,6 +335,18 @@ class ProduitController {
         include: { categorie: true }
       });
 
+      // Logger la modification
+      await logHistorique({
+        action: 'modification',
+        entite: 'produit',
+        entiteId: produit.id,
+        description: `Produit ${produit.nom} (${produit.reference}) modifié`,
+        utilisateurId: req.user.userId,
+        donneesAvant: await prisma.produit.findUnique({ where: { id } }),
+        donneesApres: produit,
+        req,
+      });
+
       return ApiResponse.success(res, produit, 'Produit mis à jour avec succès');
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -366,8 +390,22 @@ class ProduitController {
     try {
       const { id } = req.params;
 
+      // Récupérer le produit avant suppression
+      const oldProduit = await prisma.produit.findUnique({ where: { id } });
+
       await prisma.produit.delete({
         where: { id }
+      });
+
+      // Logger la suppression
+      await logHistorique({
+        action: 'suppression',
+        entite: 'produit',
+        entiteId: id,
+        description: `Produit ${oldProduit?.nom} (${oldProduit?.reference}) supprimé`,
+        utilisateurId: req.user.userId,
+        donneesAvant: oldProduit,
+        req,
       });
 
       return ApiResponse.success(res, null, 'Produit supprimé avec succès');
