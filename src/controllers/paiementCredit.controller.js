@@ -118,6 +118,11 @@ class PaiementCreditController {
             montantRestant: vente.montantRestant,
             statut: vente.statut,
             createdAt: vente.createdAt,
+            dateEcheance: vente.dateEcheance,
+            estEchu: vente.dateEcheance && new Date(vente.dateEcheance) < new Date() && vente.montantRestant > 0,
+            joursRetard: vente.dateEcheance && vente.montantRestant > 0 
+              ? Math.max(0, Math.floor((new Date() - new Date(vente.dateEcheance)) / (1000 * 60 * 60 * 24)))
+              : 0,
             articles: vente.articles.map(a => ({
               produit: a.produit.nom,
               reference: a.produit.reference,
@@ -188,7 +193,17 @@ class PaiementCreditController {
         totalDette: client.totalCredit,
         totalPaye: client.totalPaye,
         nombreVentesEnCours: client.ventes.length,
-        ventes: client.ventes
+        ventes: client.ventes.map(vente => ({
+          id: vente.id,
+          montantTotal: vente.montantTotal,
+          montantRestant: vente.montantRestant,
+          createdAt: vente.createdAt,
+          dateEcheance: vente.dateEcheance,
+          estEchu: vente.dateEcheance && new Date(vente.dateEcheance) < new Date() && vente.montantRestant > 0,
+          joursRetard: vente.dateEcheance && vente.montantRestant > 0 
+            ? Math.max(0, Math.floor((new Date() - new Date(vente.dateEcheance)) / (1000 * 60 * 60 * 24)))
+            : 0
+        }))
       }));
 
       res.json({

@@ -5,6 +5,7 @@ const z = require('zod');
 const path = require('path');
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const { logHistorique } = require('../utils/historique');
+const { checkStockAlert } = require('../utils/notifications');
 
 class ProduitController {
   /**
@@ -241,6 +242,9 @@ class ProduitController {
         include: { categorie: true }
       });
 
+      // Vérifier si le stock initial est déjà en dessous du minimum
+      await checkStockAlert(produit.id, produit.stock, produit.stockMin);
+
       // Logger la création
       await logHistorique({
         action: 'creation',
@@ -334,6 +338,11 @@ class ProduitController {
         data: dataToUpdate,
         include: { categorie: true }
       });
+
+      // Vérifier si le stock est en dessous du minimum et alerter
+      if (dataToUpdate.stock !== undefined || dataToUpdate.minStock !== undefined) {
+        await checkStockAlert(produit.id, produit.stock, produit.stockMin);
+      }
 
       // Logger la modification
       await logHistorique({

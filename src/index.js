@@ -24,7 +24,7 @@ const historiqueController = require('./controllers/historique.controller');
 const { authenticate, isAdmin } = require('./middlewares/auth.middleware');
 const validate = require('./middlewares/validate.middleware');
 const { upload, uploadErrorHandler } = require('./middlewares/upload.middleware');
-const { bootstrapDefaultAdmin, bootstrapDefaultConfiguration } = require('./bootstrap');
+const { bootstrapDefaultAdmin, bootstrapDefaultConfiguration, startCronJobs } = require('./bootstrap');
 const ApiResponse = require('./utils/apiResponse');
 const {
   createUserSchema,
@@ -239,6 +239,9 @@ async function startServer() {
     // Bootstrap
     await bootstrapDefaultAdmin();
     await bootstrapDefaultConfiguration();
+
+    // Démarrer les tâches cron automatiques
+    startCronJobs();
 
     // Démarrer le serveur
     app.listen(config.port, () => {

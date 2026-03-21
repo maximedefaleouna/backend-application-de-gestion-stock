@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const PasswordUtils = require('../utils/password');
+const { checkCreditDeadlines, checkAllStockAlerts } = require('../utils/cronJobs');
 
 /**
  * Bootstrap de l'administrateur par défaut
@@ -104,5 +105,39 @@ async function bootstrapDefaultConfiguration() {
 
 module.exports = {
   bootstrapDefaultAdmin,
-  bootstrapDefaultConfiguration
+  bootstrapDefaultConfiguration,
+  startCronJobs
 };
+
+/**
+ * Démarrer les tâches cron automatiques
+ * S'exécute toutes les heures pour vérifier les crédits et stocks
+ */
+async function startCronJobs() {
+  try {
+    console.log('⏰ Démarrage des tâches cron...');
+    
+    // Vérifier TOUS les stocks au démarrage (une seule fois)
+    setTimeout(async () => {
+      await checkAllStockAlerts();
+    }, 3000); // Après 3 secondes
+    
+    // Vérifier les crédits et stocks toutes les heures
+    setInterval(async () => {
+      const now = new Date();
+      console.log(`🕐 Exécution automatique des vérifications horaires à ${now.toLocaleString('fr-FR')}`);
+      await checkCreditDeadlines();
+      // On ne vérifie pas tous les stocks à chaque heure, seulement si nécessaire
+    }, 60 * 60 * 1000); // Toutes les heures
+    
+    // Exécuter une première fois au démarrage pour les crédits
+    setTimeout(() => {
+      console.log('🔍 Première vérification des crédits au démarrage...');
+      checkCreditDeadlines();
+    }, 5000);
+    
+    console.log('✅ Tâches cron démarrées - Vérification toutes les heures');
+  } catch (error) {
+    console.error('❌ Erreur démarrage cron:', error);
+  }
+}

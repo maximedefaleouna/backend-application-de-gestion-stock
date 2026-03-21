@@ -2,6 +2,7 @@ const prisma = require('../config/database');
 const { createVenteSchema, updateVenteSchema } = require('../validators/schemas');
 const z = require('zod');
 const { logHistorique } = require('../utils/historique');
+const { notifyNewVente, notifyNewCredit, checkStockAlert } = require('../utils/notifications');
 
 class VenteController {
   /**
@@ -218,6 +219,13 @@ class VenteController {
         }
       }
 
+      // Si c'est un crédit, vérifier que la date d'échéance est fournie
+      if (validatedData.estCredit && !validatedData.dateEcheance) {
+        return res.status(400).json({ 
+          error: 'La date d\'échéance est obligatoire pour les ventes à crédit' 
+        });
+      }
+
       // Créer la vente avec les articles (venteNumber est auto-généré)
       const vente = await prisma.vente.create({
         data: {
@@ -272,6 +280,11 @@ class VenteController {
 
       // Si c'est un crédit, mettre à jour le total credit du client
       if (vente.estCredit && vente.clientId) {
+        const client = await prisma.client.findUnique({
+          where: { id: vente.clientId },
+          select: { nom: true }
+        });
+        
         await prisma.client.update({
           where: { id: vente.clientId },
           data: {
@@ -280,10 +293,16 @@ class VenteController {
             }
           }
         });
+        
+        // Notification pour nouveau crédit
+        await notifyNewCredit(vente, client?.nom || 'Client', vente.dateEcheance);
       }
 
       // Formater le numero de vente (V-0000001, V-0000002, etc.)
       const formattedVenteNumber = `V-${String(vente.venteNumber).padStart(7, '0')}`;
+
+      // Notification pour nouvelle vente
+      await notifyNewVente(vente, req.user.userId);
 
       // Logger la création de la vente
       await logHistorique({

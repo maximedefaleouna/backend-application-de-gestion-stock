@@ -151,6 +151,7 @@ const createVenteSchema = z.object({
   statut: z.enum(['completee', 'credit', 'partielle', 'annulee']),
   clientId: z.string().uuid().optional().nullable(),
   estCredit: z.boolean().optional(),
+  dateEcheance: z.string().date().or(z.string().datetime()).optional().nullable(), // Date d'échéance pour les crédits
   articles: z.array(z.object({
     produitId: z.string().uuid(),
     quantite: z.number().int().positive(),

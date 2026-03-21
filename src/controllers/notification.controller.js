@@ -24,7 +24,16 @@ class NotificationController {
         orderBy: { createdAt: 'desc' }
       });
 
-      res.json({ data: notifications });
+      // Formater les notifications pour le frontend
+      const formattedNotifications = notifications.map(n => ({
+        ...n,
+        title: n.titre,
+        read: n.lu,
+        // Mapper les types français vers anglais pour le frontend
+        type: n.type === 'vente' ? 'sale' : n.type === 'systeme' ? 'system' : n.type,
+      }));
+
+      res.json({ data: formattedNotifications });
     } catch (error) {
       console.error('Erreur getAll notifications:', error);
       res.status(500).json({ error: 'Erreur serveur' });
@@ -57,7 +66,16 @@ class NotificationController {
         orderBy: { createdAt: 'desc' }
       });
 
-      res.json({ data: notifications });
+      // Formater les notifications pour le frontend
+      const formattedNotifications = notifications.map(n => ({
+        ...n,
+        title: n.titre,
+        read: n.lu,
+        // Mapper les types français vers anglais pour le frontend
+        type: n.type === 'vente' ? 'sale' : n.type === 'systeme' ? 'system' : n.type,
+      }));
+
+      res.json({ data: formattedNotifications });
     } catch (error) {
       console.error('Erreur getUnread notifications:', error);
       res.status(500).json({ error: 'Erreur serveur' });
