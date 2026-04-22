@@ -152,6 +152,9 @@ const createVenteSchema = z.object({
   clientId: z.string().uuid().optional().nullable(),
   estCredit: z.boolean().optional(),
   dateEcheance: z.string().date().or(z.string().datetime()).optional().nullable(), // Date d'échéance pour les crédits
+  nomAcheteur: z.string().min(2).optional().nullable(), // Nom de l'acheteur pour ventes non-crédit
+  prenomAcheteur: z.string().min(2).optional().nullable(), // Prénom de l'acheteur pour ventes non-crédit
+  telephoneAcheteur: z.string().min(8).optional().nullable(), // Téléphone de l'acheteur pour ventes non-crédit
   articles: z.array(z.object({
     produitId: z.string().uuid(),
     quantite: z.number().int().positive(),
@@ -165,7 +168,10 @@ const updateVenteSchema = z.object({
   modePaiement: z.enum(['espece', 'mobile_money', 'carte', 'credit']).optional(),
   statut: z.enum(['completee', 'credit', 'partielle', 'annulee']).optional(),
   clientId: z.string().uuid().optional().nullable(),
-  estCredit: z.boolean().optional()
+  estCredit: z.boolean().optional(),
+  nomAcheteur: z.string().min(2).optional().nullable(),
+  prenomAcheteur: z.string().min(2).optional().nullable(),
+  telephoneAcheteur: z.string().min(8).optional().nullable()
 });
 
 // Schéma pour les paiements de crédit

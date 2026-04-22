@@ -149,6 +149,9 @@ model Vente {
   clientId        String?       @map("client_id")
   estCredit       Boolean       @default(false) @map("est_credit")
   dateEcheance    DateTime?     @map("date_echeance") // Date limite de paiement pour les crédits
+  nomAcheteur     String?       @map("nom_acheteur") // Nom de l'acheteur pour ventes non-crédit
+  prenomAcheteur  String?       @map("prenom_acheteur") // Prénom de l'acheteur pour ventes non-crédit
+  telephoneAcheteur String?     @map("telephone_acheteur") // Téléphone de l'acheteur pour ventes non-crédit
   vendeurId       String        @map("vendeur_id")
   createdAt      DateTime      @default(now()) @map("cree_le")
   updatedAt   DateTime      @updatedAt @map("modifie_le")
