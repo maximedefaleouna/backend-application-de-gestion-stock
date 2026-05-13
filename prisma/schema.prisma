@@ -110,6 +110,7 @@ model Produit {
   disponible         Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("cree_le")
   updatedAt   DateTime @updatedAt @map("modifie_le")
+  deletedAt          DateTime? @map("supprime_le")
 
   // Relations
   categorie      Categorie        @relation(fields: [categorieId], references: [id])

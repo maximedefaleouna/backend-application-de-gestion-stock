@@ -1,11 +1,15 @@
-﻿const prisma = require('../config/database');
-const { createProduitSchema, updateProduitSchema } = require('../validators/schemas');
-const ApiResponse = require('../utils/apiResponse');
-const z = require('zod');
-const path = require('path');
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const { logHistorique } = require('../utils/historique');
-const { checkStockAlert } = require('../utils/notifications');
+﻿const prisma = require("../config/database");
+const {
+  createProduitSchema,
+  updateProduitSchema,
+} = require("../validators/schemas");
+const ApiResponse = require("../utils/apiResponse");
+const z = require("zod");
+const path = require("path");
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { logHistorique } = require("../utils/historique");
+const { checkStockAlert } = require("../utils/notifications");
 
 class ProduitController {
   /**
@@ -37,21 +41,23 @@ class ProduitController {
     try {
       const { categorieId, disponible, search } = req.query;
 
-      const where = {};
+      const where = {
+        deletedAt: null, // Exclure les produits supprimés
+      };
 
       if (categorieId) {
         where.categorieId = categorieId;
       }
 
       if (disponible !== undefined) {
-        where.disponible = disponible === 'true';
+        where.disponible = disponible === "true";
       }
 
       if (search) {
         where.OR = [
-          { nom: { contains: search, mode: 'insensitive' } },
-          { reference: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } }
+          { nom: { contains: search, mode: "insensitive" } },
+          { reference: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
         ];
       }
 
@@ -59,16 +65,20 @@ class ProduitController {
         where,
         include: {
           categorie: {
-            select: { id: true, nom: true }
-          }
+            select: { id: true, nom: true },
+          },
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: "desc" },
       });
 
-      return ApiResponse.success(res, produits, 'Produits récupérés avec succès');
+      return ApiResponse.success(
+        res,
+        produits,
+        "Produits récupérés avec succès",
+      );
     } catch (error) {
-      console.error('Erreur getAll produits:', error);
-      return ApiResponse.error(res, 'Erreur serveur', 500);
+      console.error("Erreur getAll produits:", error);
+      return ApiResponse.error(res, "Erreur serveur", 500);
     }
   }
 
@@ -108,23 +118,23 @@ class ProduitController {
                   id: true,
                   montantTotal: true,
                   statut: true,
-                  createdAt: true
-                }
-              }
+                  createdAt: true,
+                },
+              },
             },
-            orderBy: { vente: { createdAt: 'desc' } }
-          }
-        }
+            orderBy: { vente: { createdAt: "desc" } },
+          },
+        },
       });
 
-      if (!produit) {
-        return ApiResponse.error(res, 'Produit non trouvé', 404);
+      if (!produit || produit.deletedAt !== null) {
+        return ApiResponse.error(res, "Produit non trouvé", 404);
       }
 
-      return ApiResponse.success(res, produit, 'Produit récupéré avec succès');
+      return ApiResponse.success(res, produit, "Produit récupéré avec succès");
     } catch (error) {
-      console.error('Erreur getById produit:', error);
-      return ApiResponse.error(res, 'Erreur serveur', 500);
+      console.error("Erreur getById produit:", error);
+      return ApiResponse.error(res, "Erreur serveur", 500);
     }
   }
 
@@ -173,7 +183,7 @@ class ProduitController {
     try {
       // Gérer l'upload d'image si présente
       let imageUrl = null;
-      
+
       if (req.file) {
         // Construire l'URL de l'image
         imageUrl = `/uploads/products/${path.basename(req.file.path)}`;
@@ -181,21 +191,28 @@ class ProduitController {
 
       // Parser les données du body (sans imageUrl car géré séparément)
       const productData = { ...req.body };
-      
+
       // Si une image a été uploadée, on l'ajoute
       if (imageUrl) {
         productData.imageUrl = imageUrl;
       }
 
       // Convertir les types si nécessaire (les FormData envoient des strings)
-      if (productData.sellPrice) productData.sellPrice = Number(productData.sellPrice);
-      if (productData.buyPrice) productData.buyPrice = Number(productData.buyPrice);
-      if (productData.stock !== undefined) productData.stock = Number(productData.stock);
-      if (productData.minStock !== undefined) productData.minStock = Number(productData.minStock);
-      if (productData.available !== undefined) productData.available = productData.available === 'true';
-      if (typeof productData.compatibleVehicles === 'string') {
+      if (productData.sellPrice)
+        productData.sellPrice = Number(productData.sellPrice);
+      if (productData.buyPrice)
+        productData.buyPrice = Number(productData.buyPrice);
+      if (productData.stock !== undefined)
+        productData.stock = Number(productData.stock);
+      if (productData.minStock !== undefined)
+        productData.minStock = Number(productData.minStock);
+      if (productData.available !== undefined)
+        productData.available = productData.available === "true";
+      if (typeof productData.compatibleVehicles === "string") {
         try {
-          productData.compatibleVehicles = JSON.parse(productData.compatibleVehicles);
+          productData.compatibleVehicles = JSON.parse(
+            productData.compatibleVehicles,
+          );
         } catch {
           productData.compatibleVehicles = [];
         }
@@ -208,22 +225,26 @@ class ProduitController {
       if (!UUID_REGEX.test(categorieId)) {
         const categorie = await prisma.categorie.findFirst({
           where: { nom: categorieId },
-          select: { id: true }
+          select: { id: true },
         });
 
         if (!categorie) {
-          return ApiResponse.error(res, 'Catégorie invalide ou inexistante', 400);
+          return ApiResponse.error(
+            res,
+            "Catégorie invalide ou inexistante",
+            400,
+          );
         }
         categorieId = categorie.id;
       }
 
       // Vérifier si la référence existe déjà
       const existingProduit = await prisma.produit.findUnique({
-        where: { reference: validatedData.reference }
+        where: { reference: validatedData.reference },
       });
 
-      if (existingProduit) {
-        return ApiResponse.error(res, 'Cette référence existe déjà', 400);
+      if (existingProduit && !existingProduit.deletedAt) {
+        return ApiResponse.error(res, "Cette référence existe déjà", 400);
       }
 
       const produit = await prisma.produit.create({
@@ -237,9 +258,9 @@ class ProduitController {
           stock: validatedData.stock,
           stockMin: validatedData.minStock,
           imageUrl: validatedData.imageUrl || null,
-          disponible: validatedData.available
+          disponible: validatedData.available,
         },
-        include: { categorie: true }
+        include: { categorie: true },
       });
 
       // Vérifier si le stock initial est déjà en dessous du minimum
@@ -247,8 +268,8 @@ class ProduitController {
 
       // Logger la création
       await logHistorique({
-        action: 'creation',
-        entite: 'produit',
+        action: "creation",
+        entite: "produit",
         entiteId: produit.id,
         description: `Produit ${produit.nom} (${produit.reference}) créé`,
         utilisateurId: req.user.userId,
@@ -256,22 +277,22 @@ class ProduitController {
         req,
       });
 
-      return ApiResponse.created(res, produit, 'Produit créé avec succès');
+      return ApiResponse.created(res, produit, "Produit créé avec succès");
     } catch (error) {
       if (error instanceof z.ZodError) {
         const issues = error.issues || error.errors || [];
-        const errors = issues.map(err => ({
-          field: err.path.join('.'),
+        const errors = issues.map((err) => ({
+          field: err.path.join("."),
           message: err.message,
-          code: err.code
+          code: err.code,
         }));
-        return ApiResponse.error(res, 'Validation échouée', 400, errors);
+        return ApiResponse.error(res, "Validation échouée", 400, errors);
       }
-      if (error.code === 'P2002') {
-        return ApiResponse.error(res, 'Référence déjà utilisée', 400);
+      if (error.code === "P2002") {
+        return ApiResponse.error(res, "Référence déjà utilisée", 400);
       }
-      console.error('Erreur create produit:', error);
-      return ApiResponse.error(res, 'Erreur serveur', 500);
+      console.error("Erreur create produit:", error);
+      return ApiResponse.error(res, "Erreur serveur", 500);
     }
   }
 
@@ -307,26 +328,39 @@ class ProduitController {
       const validatedData = updateProduitSchema.parse(req.body);
       const dataToUpdate = {};
 
-      if (validatedData.name !== undefined) dataToUpdate.nom = validatedData.name;
-      if (validatedData.reference !== undefined) dataToUpdate.reference = validatedData.reference;
-      if (validatedData.description !== undefined) dataToUpdate.description = validatedData.description;
-      if (validatedData.brand !== undefined) dataToUpdate.marque = validatedData.brand;
-      if (validatedData.sellPrice !== undefined) dataToUpdate.prixVente = validatedData.sellPrice;
-      if (validatedData.stock !== undefined) dataToUpdate.stock = validatedData.stock;
-      if (validatedData.minStock !== undefined) dataToUpdate.stockMin = validatedData.minStock;
-      if (validatedData.imageUrl !== undefined) dataToUpdate.imageUrl = validatedData.imageUrl || null;
-      if (validatedData.available !== undefined) dataToUpdate.disponible = validatedData.available;
+      if (validatedData.name !== undefined)
+        dataToUpdate.nom = validatedData.name;
+      if (validatedData.reference !== undefined)
+        dataToUpdate.reference = validatedData.reference;
+      if (validatedData.description !== undefined)
+        dataToUpdate.description = validatedData.description;
+      if (validatedData.brand !== undefined)
+        dataToUpdate.marque = validatedData.brand;
+      if (validatedData.sellPrice !== undefined)
+        dataToUpdate.prixVente = validatedData.sellPrice;
+      if (validatedData.stock !== undefined)
+        dataToUpdate.stock = validatedData.stock;
+      if (validatedData.minStock !== undefined)
+        dataToUpdate.stockMin = validatedData.minStock;
+      if (validatedData.imageUrl !== undefined)
+        dataToUpdate.imageUrl = validatedData.imageUrl || null;
+      if (validatedData.available !== undefined)
+        dataToUpdate.disponible = validatedData.available;
 
       if (validatedData.category !== undefined) {
         let categorieId = validatedData.category;
         if (!UUID_REGEX.test(categorieId)) {
           const categorie = await prisma.categorie.findFirst({
             where: { nom: categorieId },
-            select: { id: true }
+            select: { id: true },
           });
 
           if (!categorie) {
-            return ApiResponse.error(res, 'Catégorie invalide ou inexistante', 400);
+            return ApiResponse.error(
+              res,
+              "Catégorie invalide ou inexistante",
+              400,
+            );
           }
           categorieId = categorie.id;
         }
@@ -336,18 +370,21 @@ class ProduitController {
       const produit = await prisma.produit.update({
         where: { id },
         data: dataToUpdate,
-        include: { categorie: true }
+        include: { categorie: true },
       });
 
       // Vérifier si le stock est en dessous du minimum et alerter
-      if (dataToUpdate.stock !== undefined || dataToUpdate.minStock !== undefined) {
+      if (
+        dataToUpdate.stock !== undefined ||
+        dataToUpdate.minStock !== undefined
+      ) {
         await checkStockAlert(produit.id, produit.stock, produit.stockMin);
       }
 
       // Logger la modification
       await logHistorique({
-        action: 'modification',
-        entite: 'produit',
+        action: "modification",
+        entite: "produit",
         entiteId: produit.id,
         description: `Produit ${produit.nom} (${produit.reference}) modifié`,
         utilisateurId: req.user.userId,
@@ -356,22 +393,26 @@ class ProduitController {
         req,
       });
 
-      return ApiResponse.success(res, produit, 'Produit mis à jour avec succès');
+      return ApiResponse.success(
+        res,
+        produit,
+        "Produit mis à jour avec succès",
+      );
     } catch (error) {
       if (error instanceof z.ZodError) {
         const issues = error.issues || error.errors || [];
-        const errors = issues.map(err => ({
-          field: err.path.join('.'),
+        const errors = issues.map((err) => ({
+          field: err.path.join("."),
           message: err.message,
-          code: err.code
+          code: err.code,
         }));
-        return ApiResponse.error(res, 'Validation échouée', 400, errors);
+        return ApiResponse.error(res, "Validation échouée", 400, errors);
       }
-      if (error.code === 'P2025') {
-        return ApiResponse.error(res, 'Produit non trouvé', 404);
+      if (error.code === "P2025") {
+        return ApiResponse.error(res, "Produit non trouvé", 404);
       }
-      console.error('Erreur update produit:', error);
-      return ApiResponse.error(res, 'Erreur serveur', 500);
+      console.error("Erreur update produit:", error);
+      return ApiResponse.error(res, "Erreur serveur", 500);
     }
   }
 
@@ -402,14 +443,20 @@ class ProduitController {
       // Récupérer le produit avant suppression
       const oldProduit = await prisma.produit.findUnique({ where: { id } });
 
-      await prisma.produit.delete({
-        where: { id }
+      if (!oldProduit) {
+        return ApiResponse.error(res, "Produit non trouvé", 404);
+      }
+
+      // Soft delete - marquer comme supprimé
+      const updatedProduit = await prisma.produit.update({
+        where: { id },
+        data: { deletedAt: new Date() },
       });
 
       // Logger la suppression
       await logHistorique({
-        action: 'suppression',
-        entite: 'produit',
+        action: "suppression",
+        entite: "produit",
         entiteId: id,
         description: `Produit ${oldProduit?.nom} (${oldProduit?.reference}) supprimé`,
         utilisateurId: req.user.userId,
@@ -417,13 +464,13 @@ class ProduitController {
         req,
       });
 
-      return ApiResponse.success(res, null, 'Produit supprimé avec succès');
+      return ApiResponse.success(res, null, "Produit supprimé avec succès");
     } catch (error) {
-      if (error.code === 'P2025') {
-        return ApiResponse.error(res, 'Produit non trouvé', 404);
+      if (error.code === "P2025") {
+        return ApiResponse.error(res, "Produit non trouvé", 404);
       }
-      console.error('Erreur delete produit:', error);
-      return ApiResponse.error(res, 'Erreur serveur', 500);
+      console.error("Erreur delete produit:", error);
+      return ApiResponse.error(res, "Erreur serveur", 500);
     }
   }
 
@@ -443,22 +490,26 @@ class ProduitController {
     try {
       const produits = await prisma.produit.findMany({
         where: {
+          deletedAt: null, // Exclure les produits supprimés
           stock: {
-            lte: prisma.produit.fields.stockMin
-          }
+            lte: prisma.produit.fields.stockMin,
+          },
         },
         include: {
-          categorie: true
-        }
+          categorie: true,
+        },
       });
 
-      return ApiResponse.success(res, produits, 'Produits avec stock faible récupérés avec succès');
+      return ApiResponse.success(
+        res,
+        produits,
+        "Produits avec stock faible récupérés avec succès",
+      );
     } catch (error) {
-      console.error('Erreur getLowStock produits:', error);
-      return ApiResponse.error(res, 'Erreur serveur', 500);
+      console.error("Erreur getLowStock produits:", error);
+      return ApiResponse.error(res, "Erreur serveur", 500);
     }
   }
 }
 
 module.exports = new ProduitController();
-
