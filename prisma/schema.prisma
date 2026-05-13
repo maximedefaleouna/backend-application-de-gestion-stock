@@ -88,6 +88,7 @@ model Categorie {
   description String?
   createdAt      DateTime  @default(now()) @map("cree_le")
   updatedAt   DateTime  @updatedAt @map("modifie_le")
+  deletedAt          DateTime? @map("supprime_le")
 
   // Relations
   produits    Produit[]

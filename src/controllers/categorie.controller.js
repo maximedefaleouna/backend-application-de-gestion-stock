@@ -1,7 +1,10 @@
-const prisma = require('../config/database');
-const { createCategorieSchema, updateCategorieSchema } = require('../validators/schemas');
-const ApiResponse = require('../utils/apiResponse');
-const z = require('zod');
+const prisma = require("../config/database");
+const {
+  createCategorieSchema,
+  updateCategorieSchema,
+} = require("../validators/schemas");
+const ApiResponse = require("../utils/apiResponse");
+const z = require("zod");
 
 class CategorieController {
   /**
@@ -19,25 +22,26 @@ class CategorieController {
   async getAll(req, res) {
     try {
       const categories = await prisma.categorie.findMany({
+        where: { deletedAt: null },
         include: {
           produits: {
             select: {
               id: true,
               nom: true,
-              reference: true
-            }
+              reference: true,
+            },
           },
           _count: {
-            select: { produits: true }
-          }
+            select: { produits: true },
+          },
         },
-        orderBy: { nom: 'asc' }
+        orderBy: { nom: "asc" },
       });
 
       res.json({ data: categories });
     } catch (error) {
-      console.error('Erreur getAll categories:', error);
-      res.status(500).json({ error: 'Erreur serveur' });
+      console.error("Erreur getAll categories:", error);
+      res.status(500).json({ error: "Erreur serveur" });
     }
   }
 
@@ -74,20 +78,21 @@ class CategorieController {
               nom: true,
               reference: true,
               prixVente: true,
-              stock: true
-            }
-          }
-        }
+              stock: true,
+              deletedAt: true,
+            },
+          },
+        },
       });
 
-      if (!categorie) {
-        return res.status(404).json({ error: 'Catégorie non trouvée' });
+      if (!categorie || categorie.deletedAt !== null) {
+        return res.status(404).json({ error: "Catégorie non trouvée" });
       }
 
       res.json({ data: categorie });
     } catch (error) {
-      console.error('Erreur getById categorie:', error);
-      res.status(500).json({ error: 'Erreur serveur' });
+      console.error("Erreur getById categorie:", error);
+      res.status(500).json({ error: "Erreur serveur" });
     }
   }
 
@@ -121,25 +126,27 @@ class CategorieController {
       const validatedData = createCategorieSchema.parse(req.body);
 
       const categorie = await prisma.categorie.create({
-        data: validatedData
+        data: validatedData,
       });
 
       res.status(201).json({
-        message: 'Catégorie créée avec succès',
-        data: categorie
+        message: "Catégorie créée avec succès",
+        data: categorie,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          error: 'Validation échouée', 
-          details: error.errors 
+        return res.status(400).json({
+          error: "Validation échouée",
+          details: error.errors,
         });
       }
-      if (error.code === 'P2002') {
-        return res.status(400).json({ error: 'Ce nom de catégorie existe déjà' });
+      if (error.code === "P2002") {
+        return res
+          .status(400)
+          .json({ error: "Ce nom de catégorie existe déjà" });
       }
-      console.error('Erreur create categorie:', error);
-      res.status(500).json({ error: 'Erreur serveur' });
+      console.error("Erreur create categorie:", error);
+      res.status(500).json({ error: "Erreur serveur" });
     }
   }
 
@@ -176,25 +183,25 @@ class CategorieController {
 
       const categorie = await prisma.categorie.update({
         where: { id },
-        data: validatedData
+        data: validatedData,
       });
 
       res.json({
-        message: 'Catégorie mise à jour avec succès',
-        data: categorie
+        message: "Catégorie mise à jour avec succès",
+        data: categorie,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          error: 'Validation échouée', 
-          details: error.errors 
+        return res.status(400).json({
+          error: "Validation échouée",
+          details: error.errors,
         });
       }
-      if (error.code === 'P2025') {
-        return res.status(404).json({ error: 'Catégorie non trouvée' });
+      if (error.code === "P2025") {
+        return res.status(404).json({ error: "Catégorie non trouvée" });
       }
-      console.error('Erreur update categorie:', error);
-      res.status(500).json({ error: 'Erreur serveur' });
+      console.error("Erreur update categorie:", error);
+      res.status(500).json({ error: "Erreur serveur" });
     }
   }
 
@@ -222,22 +229,44 @@ class CategorieController {
     try {
       const { id } = req.params;
 
-      await prisma.categorie.delete({
-        where: { id }
+      const categorie = await prisma.categorie.findUnique({
+        where: { id },
+        include: {
+          produits: {
+            select: {
+              deletedAt: true,
+            },
+          },
+        },
       });
 
-      res.json({ message: 'Catégorie supprimée avec succès' });
-    } catch (error) {
-      if (error.code === 'P2025') {
-        return res.status(404).json({ error: 'Catégorie non trouvée' });
+      if (!categorie) {
+        return res.status(404).json({ error: "Catégorie non trouvée" });
       }
-      if (error.code === 'P2003') {
-        return res.status(400).json({ 
-          error: 'Impossible de supprimer : cette catégorie contient des produits' 
+
+      const produitNonSupprimes = categorie.produits.filter(
+        (produit) => produit.deletedAt === null,
+      );
+
+      if (produitNonSupprimes.length > 0) {
+        return res.status(400).json({
+          error:
+            "Impossible de supprimer : cette catégorie contient encore des produits actifs",
         });
       }
-      console.error('Erreur delete categorie:', error);
-      res.status(500).json({ error: 'Erreur serveur' });
+
+      await prisma.categorie.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+
+      res.json({ message: "Catégorie supprimée avec succès" });
+    } catch (error) {
+      if (error.code === "P2025") {
+        return res.status(404).json({ error: "Catégorie non trouvée" });
+      }
+      console.error("Erreur delete categorie:", error);
+      res.status(500).json({ error: "Erreur serveur" });
     }
   }
 }
